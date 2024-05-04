@@ -14,12 +14,12 @@ require("lazy").setup({
   {
     "David-Kunz/gen.nvim",
     opts = {
-      model = "codeqwen:7b-chat", -- The default model to use.
+      model = "codeqwen:7b-code-v1.5-q4_0-requant", -- The default model to use.
       host = "localhost", -- The host running the Ollama service.
       port = "11434", -- The port on which the Ollama service is listening.
       quit_map = "q", -- set keymap for close the response window
       retry_map = "<c-r>", -- set keymap to re-send the current prompt
-      init = function(options) pcall(io.popen, "ollama serve > /dev/null 2>&1 &") end,
+      init = function(options) pcall(io.popen, "") end,
       -- Function to initialize Ollama
       command = function(options)
         local body = { model = options.model, stream = true }
