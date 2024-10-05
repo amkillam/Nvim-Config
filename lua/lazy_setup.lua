@@ -11,36 +11,42 @@ require("lazy").setup({
       update_notifications = true, -- Enable/disable notification about running `:Lazy update` twice to update pinned plugins
     },
   },
+  -- Simple, minimal Lazy.nvim configuration
   {
-    "David-Kunz/gen.nvim",
+    "huynle/ogpt.nvim",
+    event = "VeryLazy",
     opts = {
-      model = "codeqwen:7b-code-v1.5-q4_0-requant", -- The default model to use.
-      host = "localhost", -- The host running the Ollama service.
-      port = "11434", -- The port on which the Ollama service is listening.
-      quit_map = "q", -- set keymap for close the response window
-      retry_map = "<c-r>", -- set keymap to re-send the current prompt
-      init = function(options) pcall(io.popen, "") end,
-      -- Function to initialize Ollama
-      command = function(options)
-        local body = { model = options.model, stream = true }
-        return "curl --silent --no-buffer -X POST http://"
-          .. options.host
-          .. ":"
-          .. options.port
-          .. "/api/chat -d $body"
-      end,
-      -- The command for the Ollama service. You can use placeholders $prompt, $model and $body (shellescaped).
-      -- This can also be a command string.
-      -- The executed command must return a JSON object with { response, context }
-      -- (context property is optional).
-      -- list_models = '<omitted lua function>', -- Retrieves a list of model names
-      display_mode = "float", -- The display mode. Can be "float" or "split".
-      show_prompt = false, -- Shows the prompt submitted to Ollama.
-      show_model = false, -- Displays which model you are using at the beginning of your chat session.
-      no_auto_close = false, -- Never closes the window automatically.
-      debug = false, -- Prints errors and the command which is run.
+      default_provider = "ollama",
+      providers = {
+        ollama = {
+          api_host = os.getenv "OLLAMA_API_HOST" or "http://localhost:11434",
+          api_key = os.getenv "OLLAMA_API_KEY" or "",
+          model = {
+            name = "codeqwen:7b-chat",
+            system_message = "You are an expert programmer and a personal assistant.",
+          },
+        },
+      },
+    },
+    dependencies = {
+      "MunifTanjim/nui.nvim",
+      "nvim-lua/plenary.nvim",
+      "nvim-telescope/telescope.nvim",
     },
   },
+
+  {
+    "jay-babu/mason-nvim-dap.nvim",
+    -- overrides `require("mason-nvim-dap").setup(...)`
+    opts = function(_, opts)
+      -- add more things to the ensure_installed table protecting against community packs modifying it
+      opts.ensure_installed = require("astrocore").list_insert_unique(opts.ensure_installed, {
+        "codelldb",
+        "cpptools",
+      })
+    end,
+  },
+
   { import = "community" },
   { import = "plugins" },
 } --[[@as LazySpec]], {
@@ -51,11 +57,8 @@ require("lazy").setup({
     rtp = {
       -- disable some rtp plugins, add more to your liking
       disabled_plugins = {
-        "gzip",
         "netrwPlugin",
-        "tarPlugin",
         "tohtml",
-        "zipPlugin",
       },
     },
   },

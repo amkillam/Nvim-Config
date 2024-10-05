@@ -82,7 +82,9 @@ return {
   { import = "astrocommunity.pack.typst" },
   { import = "astrocommunity.pack.vue" },
   { import = "astrocommunity.pack.wgsl" },
+  { import = "astrocommunity.pack.xml" },
   { import = "astrocommunity.pack.yaml" },
   { import = "astrocommunity.pack.zig" },
+  { import = "astrocommunity.completion.copilot-lua-cmp" },
   { import = "astrocommunity.bars-and-lines.smartcolumn-nvim" },
 }
