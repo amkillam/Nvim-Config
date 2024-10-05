@@ -16,3 +16,5 @@ vim.filetype.add {
     ["~/%.config/foo/.*"] = "fooscript",
   },
 }
+
+require("nvim-dap-projects").search_project_config()
