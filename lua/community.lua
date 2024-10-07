@@ -86,5 +86,6 @@ return {
   { import = "astrocommunity.pack.yaml" },
   { import = "astrocommunity.pack.zig" },
   { import = "astrocommunity.completion.copilot-lua-cmp" },
+  { import = "astrocommunity.editing-support.copilotchat-nvim" },
   { import = "astrocommunity.bars-and-lines.smartcolumn-nvim" },
 }
