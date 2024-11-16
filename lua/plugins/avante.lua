@@ -1,7 +1,13 @@
 local utils = require "../utils"
 local OS = utils.OS()
-local provider = "ollama_qwen2_5_coder_7b"
-if OS == "MacOS" then provider = "ollama_qwen2_5_coder_32b_instruct_fp16" end
+local ollama_model = os.getenv "AVANTE_OLLAMA_MODEL"
+if ollama_model == "" then
+  if OS == "MacOS" then
+    model = "ollama_qwen2_5_coder_32b_instruct_fp16"
+  else
+    model = "ollama_qwen2_5_coder_7b"
+  end
+end
 
 return { -- further customize the options set by the community
   "yetone/avante.nvim",
@@ -78,7 +84,7 @@ return { -- further customize the options set by the community
   },
   opts = {
     debug = false,
-    provider = provider, -- Only recommend using Claude
+    provider = "ollama", -- Only recommend using Claude
     auto_suggestions_provider = "copilot",
     -- Used for counting tokens and encoding text.
     -- By default, we will use tiktoken.
@@ -148,6 +154,16 @@ Respect and use existing conventions, libraries, etc that are already present in
       temperature = 0,
       max_tokens = 4096,
       ["local"] = false,
+    },
+    ollama = {
+    ---@type AvanteSupportedProvider
+    ollama_qwen2_5_coder_7b = {
+      endpoint = "https://localhost:11434/api/generate",
+      model = ollama_model,
+      timeout = 30000, -- Timeout in milliseconds
+      temperature = 0,
+      max_tokens = 8000,
+      ["local"] = true,
     },
     ---@type AvanteSupportedProvider
     ollama_qwen2_5_coder_7b = {
