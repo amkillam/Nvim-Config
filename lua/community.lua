@@ -1,4 +1,5 @@
-return {
+local utils = require "../utils"
+local imports = {
   "AstroNvim/astrocommunity",
   { import = "astrocommunity.colorscheme.bamboo-nvim" },
   { import = "astrocommunity.colorscheme.catppuccin" },
@@ -49,7 +50,6 @@ return {
   { import = "astrocommunity.pack.go" },
   { import = "astrocommunity.pack.godot" },
   { import = "astrocommunity.pack.haskell" },
-  { import = "astrocommunity.pack.haxe" },
   { import = "astrocommunity.pack.helm" },
   { import = "astrocommunity.pack.html-css" },
   { import = "astrocommunity.pack.java" },
@@ -86,6 +86,9 @@ return {
   { import = "astrocommunity.pack.yaml" },
   { import = "astrocommunity.pack.zig" },
   { import = "astrocommunity.completion.copilot-lua-cmp" },
-  { import = "astrocommunity.editing-support.copilotchat-nvim" },
   { import = "astrocommunity.bars-and-lines.smartcolumn-nvim" },
 }
+
+if utils.OS() ~= "MacOS" then imports.insert { import = "astrocommunity.pack.haxe" } end
+
+return imports
