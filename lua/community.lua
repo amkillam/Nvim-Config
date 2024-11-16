@@ -1,4 +1,4 @@
-local utils = require "../utils"
+local utils = require "utils"
 local imports = {
   "AstroNvim/astrocommunity",
   { import = "astrocommunity.colorscheme.bamboo-nvim" },
@@ -89,6 +89,6 @@ local imports = {
   { import = "astrocommunity.bars-and-lines.smartcolumn-nvim" },
 }
 
-if utils.OS() ~= "MacOS" then imports.insert { import = "astrocommunity.pack.haxe" } end
+if utils.OS() ~= "Darwin" then table.insert(imports, { import = "astrocommunity.pack.haxe" }) end
 
 return imports
