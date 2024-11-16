@@ -158,160 +158,159 @@ Respect and use existing conventions, libraries, etc that are already present in
       max_tokens = 4096,
       ["local"] = false,
     },
-      ---@type AvanteSupportedProvider
+    ---@type AvanteSupportedProvider
     ollama = {
-        endpoint = "https://localhost:11434/api/generate",
-        model = ollama_model,
-        timeout = 30000, -- Timeout in milliseconds
-        temperature = 0,
-        max_tokens = 8000,
-        ["local"] = true,
-      },
-      ---@type AvanteSupportedProvider
-      ollama_qwen2_5_coder_7b = {
-        endpoint = "https://localhost:11434/api/generate",
-        model = "qwen2.5-coder:7b",
-        timeout = 30000, -- Timeout in milliseconds
-        temperature = 0,
-        max_tokens = 8000,
-        ["local"] = true,
-      },
-      ---@type AvanteSupportedProvider
-      ollama_qwen2_5_coder_32b_instruct_q8_0 = {
-        endpoint = "https://localhost:11434/api/generate",
-        model = "qwen2.5-coder:32b-instruct-q8_0",
-        timeout = 30000, -- Timeout in milliseconds
-        temperature = 0,
-        max_tokens = 8000,
-        ["local"] = true,
-      },
-      ---@type AvanteSupportedProvider
-      ollama_qwen2_5_coder_32b_instruct_fp16 = {
-        endpoint = "https://localhost:11434/api/generate",
-        model = "qwen2.5-coder:32b-instruct-fp16",
-        timeout = 30000, -- Timeout in milliseconds
-        temperature = 0,
-        max_tokens = 8000,
-        ["local"] = true,
-      },
-      ---To add support for custom provider, follow the format below
-      ---See https://github.com/yetone/avante.nvim/README.md#custom-providers for more details
-      ---@type {[string]: AvanteProvider}
-      vendors = {},
-      ---Specify the behaviour of avante.nvim
-      ---1. auto_apply_diff_after_generation: Whether to automatically apply diff after LLM response.
-      ---                                     This would simulate similar behaviour to cursor. Default to false.
-      ---2. auto_set_keymaps                : Whether to automatically set the keymap for the current line. Default to true.
-      ---                                     Note that avante will safely set these keymap. See https://github.com/yetone/avante.nvim/wiki#keymaps-and-api-i-guess for more details.
-      ---3. auto_set_highlight_group        : Whether to automatically set the highlight group for the current line. Default to true.
-      ---4. support_paste_from_clipboard    : Whether to support pasting image from clipboard. This will be determined automatically based whether img-clip is available or not.
-      behaviour = {
-        auto_suggestions = false, -- Experimental stage
-        auto_set_highlight_group = true,
-        auto_set_keymaps = false,
-        auto_apply_diff_after_generation = true,
-        support_paste_from_clipboard = true,
-      },
-      history = {
-        storage_path = vim.fn.stdpath "state" .. "/avante",
-        paste = {
-          extension = "png",
-          filename = "pasted-%Y-%m-%d-%H-%M-%S",
-        },
-      },
-      highlights = {
-        ---@type AvanteConflictHighlights
-        diff = {
-          current = "DiffText",
-          incoming = "DiffAdd",
-        },
-      },
-      mappings = {
-        ---@class AvanteConflictMappings
-        diff = {
-          ours = "<leader>aco",
-          theirs = "<leader>act",
-          all_theirs = "<leader>aca",
-          both = "<leader>acb",
-          cursor = "<leader>acc",
-          next = "<leader>a]x",
-          prev = "<leader>a[x",
-        },
-        suggestion = {
-          accept = "<leader>a<M-l>",
-          next = "<leader>a<M-]>",
-          prev = "<leader>a<M-[>",
-          dismiss = "<leader>a<C-]>",
-        },
-        jump = {
-          next = "<leader>a]]",
-          prev = "<leader>a[[",
-        },
-        submit = {
-          normal = "<CR>",
-          insert = "<C-s>",
-        },
-        -- NOTE: The following will be safely set by avante.nvim
-        ask = "<leader>aa",
-        edit = "<leader>ae",
-        refresh = "<leader>ar",
-        toggle = {
-          default = "<leader>at",
-          debug = "<leader>ad",
-          hint = "<leader>ah",
-          suggestion = "<leader>as",
-        },
-        sidebar = {
-          apply_all = "A",
-          apply_cursor = "a",
-          switch_windows = "<Tab>",
-          reverse_switch_windows = "<S-Tab>",
-        },
-      },
-      windows = {
-        position = "right",
-        wrap = true, -- similar to vim.o.wrap
-        width = 30, -- default % based on available width in vertical layout
-        height = 30, -- default % based on available height in horizontal layout
-        sidebar_header = {
-          align = "center", -- left, center, right for title
-          rounded = true,
-        },
-        input = {
-          prefix = "> ",
-        },
-        edit = {
-          border = "rounded",
-        },
-      },
-      --- @class AvanteConflictConfig
-      diff = {
-        autojump = true,
-      },
-      --- @class AvanteHintsConfig
-      hints = {
-        enabled = false,
+      endpoint = "https://localhost:11434/api/generate",
+      model = ollama_model,
+      timeout = 30000, -- Timeout in milliseconds
+      temperature = 0,
+      max_tokens = 8000,
+      ["local"] = true,
+    },
+    ---@type AvanteSupportedProvider
+    ollama_qwen2_5_coder_7b = {
+      endpoint = "https://localhost:11434/api/generate",
+      model = "qwen2.5-coder:7b",
+      timeout = 30000, -- Timeout in milliseconds
+      temperature = 0,
+      max_tokens = 8000,
+      ["local"] = true,
+    },
+    ---@type AvanteSupportedProvider
+    ollama_qwen2_5_coder_32b_instruct_q8_0 = {
+      endpoint = "https://localhost:11434/api/generate",
+      model = "qwen2.5-coder:32b-instruct-q8_0",
+      timeout = 30000, -- Timeout in milliseconds
+      temperature = 0,
+      max_tokens = 8000,
+      ["local"] = true,
+    },
+    ---@type AvanteSupportedProvider
+    ollama_qwen2_5_coder_32b_instruct_fp16 = {
+      endpoint = "https://localhost:11434/api/generate",
+      model = "qwen2.5-coder:32b-instruct-fp16",
+      timeout = 30000, -- Timeout in milliseconds
+      temperature = 0,
+      max_tokens = 8000,
+      ["local"] = true,
+    },
+    ---To add support for custom provider, follow the format below
+    ---See https://github.com/yetone/avante.nvim/README.md#custom-providers for more details
+    ---@type {[string]: AvanteProvider}
+    vendors = {},
+    ---Specify the behaviour of avante.nvim
+    ---1. auto_apply_diff_after_generation: Whether to automatically apply diff after LLM response.
+    ---                                     This would simulate similar behaviour to cursor. Default to false.
+    ---2. auto_set_keymaps                : Whether to automatically set the keymap for the current line. Default to true.
+    ---                                     Note that avante will safely set these keymap. See https://github.com/yetone/avante.nvim/wiki#keymaps-and-api-i-guess for more details.
+    ---3. auto_set_highlight_group        : Whether to automatically set the highlight group for the current line. Default to true.
+    ---4. support_paste_from_clipboard    : Whether to support pasting image from clipboard. This will be determined automatically based whether img-clip is available or not.
+    behaviour = {
+      auto_suggestions = false, -- Experimental stage
+      auto_set_highlight_group = true,
+      auto_set_keymaps = false,
+      auto_apply_diff_after_generation = true,
+      support_paste_from_clipboard = true,
+    },
+    history = {
+      storage_path = vim.fn.stdpath "state" .. "/avante",
+      paste = {
+        extension = "png",
+        filename = "pasted-%Y-%m-%d-%H-%M-%S",
       },
     },
-    specs = {
-      {
-        -- make sure `Avante` is added as a filetype
-        "MeanderingProgrammer/render-markdown.nvim",
-        optional = true,
-        opts = function(_, opts)
-          if not opts.file_types then opts.filetypes = { "markdown" } end
-          opts.file_types = require("astrocore").list_insert_unique(opts.file_types, { "Avante" })
-        end,
+    highlights = {
+      ---@type AvanteConflictHighlights
+      diff = {
+        current = "DiffText",
+        incoming = "DiffAdd",
       },
-      {
-        -- make sure `Avante` is added as a filetype
-        "OXY2DEV/markview.nvim",
-        optional = true,
-        opts = function(_, opts)
-          if not opts.filetypes then opts.filetypes = { "markdown", "quarto", "rmd" } end
-          opts.filetypes = require("astrocore").list_insert_unique(opts.filetypes, { "Avante" })
-        end,
+    },
+    mappings = {
+      ---@class AvanteConflictMappings
+      diff = {
+        ours = "<leader>aco",
+        theirs = "<leader>act",
+        all_theirs = "<leader>aca",
+        both = "<leader>acb",
+        cursor = "<leader>acc",
+        next = "<leader>a]x",
+        prev = "<leader>a[x",
       },
+      suggestion = {
+        accept = "<leader>a<M-l>",
+        next = "<leader>a<M-]>",
+        prev = "<leader>a<M-[>",
+        dismiss = "<leader>a<C-]>",
+      },
+      jump = {
+        next = "<leader>a]]",
+        prev = "<leader>a[[",
+      },
+      submit = {
+        normal = "<CR>",
+        insert = "<C-s>",
+      },
+      -- NOTE: The following will be safely set by avante.nvim
+      ask = "<leader>aa",
+      edit = "<leader>ae",
+      refresh = "<leader>ar",
+      toggle = {
+        default = "<leader>at",
+        debug = "<leader>ad",
+        hint = "<leader>ah",
+        suggestion = "<leader>as",
+      },
+      sidebar = {
+        apply_all = "A",
+        apply_cursor = "a",
+        switch_windows = "<Tab>",
+        reverse_switch_windows = "<S-Tab>",
+      },
+    },
+    windows = {
+      position = "right",
+      wrap = true, -- similar to vim.o.wrap
+      width = 30, -- default % based on available width in vertical layout
+      height = 30, -- default % based on available height in horizontal layout
+      sidebar_header = {
+        align = "center", -- left, center, right for title
+        rounded = true,
+      },
+      input = {
+        prefix = "> ",
+      },
+      edit = {
+        border = "rounded",
+      },
+    },
+    --- @class AvanteConflictConfig
+    diff = {
+      autojump = true,
+    },
+    --- @class AvanteHintsConfig
+    hints = {
+      enabled = false,
+    },
+  },
+  specs = {
+    {
+      -- make sure `Avante` is added as a filetype
+      "MeanderingProgrammer/render-markdown.nvim",
+      optional = true,
+      opts = function(_, opts)
+        if not opts.file_types then opts.filetypes = { "markdown" } end
+        opts.file_types = require("astrocore").list_insert_unique(opts.file_types, { "Avante" })
+      end,
+    },
+    {
+      -- make sure `Avante` is added as a filetype
+      "OXY2DEV/markview.nvim",
+      optional = true,
+      opts = function(_, opts)
+        if not opts.filetypes then opts.filetypes = { "markdown", "quarto", "rmd" } end
+        opts.filetypes = require("astrocore").list_insert_unique(opts.filetypes, { "Avante" })
+      end,
     },
   },
 }
