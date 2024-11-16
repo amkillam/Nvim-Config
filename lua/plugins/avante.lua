@@ -9,9 +9,12 @@ if ollama_model == "" then
   end
 end
 
+local build = "make BUILD_FROM_SOURCE=true"
+if OS == "Windows" then build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource true" end
+
 return { -- further customize the options set by the community
   "yetone/avante.nvim",
-  build = ":AvanteBuild source=true",
+  build = build,
   version = false,
   cmd = {
     "AvanteAsk",
@@ -155,9 +158,8 @@ Respect and use existing conventions, libraries, etc that are already present in
       max_tokens = 4096,
       ["local"] = false,
     },
-    ollama = {
       ---@type AvanteSupportedProvider
-      ollama_qwen2_5_coder_7b = {
+    ollama = {
         endpoint = "https://localhost:11434/api/generate",
         model = ollama_model,
         timeout = 30000, -- Timeout in milliseconds
