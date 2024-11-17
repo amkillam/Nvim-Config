@@ -1,19 +1,45 @@
-local utils = require "../utils"
+local utils = require "utils"
+local ollama_provider = require "plugins.avante.ollama"
+
 local OS = utils.OS()
 local ollama_model = os.getenv "AVANTE_OLLAMA_MODEL"
 if ollama_model == "" then
   if OS == "Darwin" then
-    ollama_model = "ollama_qwen2_5_coder_32b_instruct_fp16"
+    ollama_model = "qwen2.5-coder:32b-instruct-fp16"
   else
-    ollama_model = "ollama_qwen2_5_coder_7b"
+    ollama_model = "qwen2.5-coder:7b"
   end
 end
 
 local build = "make BUILD_FROM_SOURCE=true"
 if OS == "Windows" then build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource true" end
 
+---@class AvanteProvider
+local ollama = ollama_provider
+ollama.model = ollama_model
+ollama.endpoint = "https://localhost:11434"
+ollama.timeout = 30000
+ollama.temperature = 0
+ollama.max_tokens = 8000
+ollama.api_key_name = ""
+
+---@param model string
+local function ollama_with_model(model)
+  local provider = ollama_provider
+  provider.model = model
+  return provider
+end
+
+---@class AvanteProvider
+local ollama_qwen2_5_coder_7b = ollama_with_model "qwen2.5-coder:7b"
+---@class AvanteProvider
+local ollama_qwen2_5_coder_32b_instruct_q8_0 = ollama_with_model "qwen2.5-coder:32b-instruct-q8_0"
+---@class AvanteProvider
+local ollama_qwen2_5_coder_32b_instruct_fp16 = ollama_with_model "qwen2.5-coder:32b-instruct-fp16"
+
 return { -- further customize the options set by the community
   "yetone/avante.nvim",
+  lazy = false,
   build = build,
   version = false,
   cmd = {
@@ -55,13 +81,28 @@ return { -- further customize the options set by the community
 
         maps.n[prefix] = { desc = "Avante functionalities" }
 
-        maps.n[prefix .. "a"] = { function() require("avante.api").ask() end, desc = "Avante ask" }
-        maps.v[prefix .. "a"] = { function() require("avante.api").ask() end, desc = "Avante ask" }
+        maps.n[prefix .. "a"] = {
+          function() require("avante.api").ask() end,
+          desc = "Avante ask",
+        }
+        maps.v[prefix .. "a"] = {
+          function() require("avante.api").ask() end,
+          desc = "Avante ask",
+        }
 
-        maps.v[prefix .. "r"] = { function() require("avante.api").refresh() end, desc = "Avante refresh" }
+        maps.v[prefix .. "r"] = {
+          function() require("avante.api").refresh() end,
+          desc = "Avante refresh",
+        }
 
-        maps.n[prefix .. "e"] = { function() require("avante.api").edit() end, desc = "Avante edit" }
-        maps.v[prefix .. "e"] = { function() require("avante.api").edit() end, desc = "Avante edit" }
+        maps.n[prefix .. "e"] = {
+          function() require("avante.api").edit() end,
+          desc = "Avante edit",
+        }
+        maps.v[prefix .. "e"] = {
+          function() require("avante.api").edit() end,
+          desc = "Avante edit",
+        }
 
         -- the following key bindings do not have an official api implementation
         maps.n.co = { "<Plug>(AvanteConflictOurs)", desc = "Choose ours", expr = true }
@@ -158,46 +199,20 @@ Respect and use existing conventions, libraries, etc that are already present in
       max_tokens = 4096,
       ["local"] = false,
     },
-    ---@type AvanteSupportedProvider
-    ollama = {
-      endpoint = "https://localhost:11434/api/generate",
-      model = ollama_model,
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 8000,
-      ["local"] = true,
-    },
-    ---@type AvanteSupportedProvider
-    ollama_qwen2_5_coder_7b = {
-      endpoint = "https://localhost:11434/api/generate",
-      model = "qwen2.5-coder:7b",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 8000,
-      ["local"] = true,
-    },
-    ---@type AvanteSupportedProvider
-    ollama_qwen2_5_coder_32b_instruct_q8_0 = {
-      endpoint = "https://localhost:11434/api/generate",
-      model = "qwen2.5-coder:32b-instruct-q8_0",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 8000,
-      ["local"] = true,
-    },
-    ---@type AvanteSupportedProvider
-    ollama_qwen2_5_coder_32b_instruct_fp16 = {
-      endpoint = "https://localhost:11434/api/generate",
-      model = "qwen2.5-coder:32b-instruct-fp16",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 8000,
-      ["local"] = true,
-    },
+
     ---To add support for custom provider, follow the format below
     ---See https://github.com/yetone/avante.nvim/README.md#custom-providers for more details
     ---@type {[string]: AvanteProvider}
-    vendors = {},
+    vendors = {
+      ---@type AvanteProvider
+      ollama = ollama,
+      ---@type AvanteProvider
+      ollama_qwen2_5_coder_7b = ollama_qwen2_5_coder_7b,
+      ---@type AvanteProvider
+      ollama_qwen2_5_coder_32b_instruct_q8_0 = ollama_qwen2_5_coder_32b_instruct_q8_0,
+      ---@type AvanteProvider
+      ollama_qwen2_5_coder_32b_instruct_fp16 = ollama_qwen2_5_coder_32b_instruct_fp16,
+    },
     ---Specify the behaviour of avante.nvim
     ---1. auto_apply_diff_after_generation: Whether to automatically apply diff after LLM response.
     ---                                     This would simulate similar behaviour to cursor. Default to false.
