@@ -9,6 +9,7 @@
 ---@field api_version? string
 ---@field proxy? string
 ---@field allow_insecure? boolean
+---@field supports_messages? boolean
 ---@field api_key_name? string
 ---@field timeout? integer
 ---@field local? boolean
@@ -105,12 +106,12 @@ Utils.shell_run = function(input_cmd)
 end
 
 Utils.debug = function(...)
-  if
-    true --not require("avante.config").options.debug
-  then
-    return
-  end
-
+  -- if
+  --   true --not require("avante.config").options.debug
+  -- then
+  --   return
+  -- end
+  --
   local args = { ... }
   if #args == 0 then return end
   local timestamp = os.date "%Y-%m-%d %H:%M:%S"
@@ -168,7 +169,8 @@ end
 ---@field id string
 ---@field created_at integer
 ---@field model string
----@field message OllamaMessage
+---@field message? OllamaMessage
+---@field response? string
 ---@field done boolean
 ---@field done_reason? "stop" | "timeout" | "max_turns" | "max_time" | "max_tokens" | "max_characters" | "max_messages" | "max_evaluations" | "load" | "unload"
 ---@field load_duration? integer
@@ -255,17 +257,20 @@ ollama.parse_messages = function(opts)
   return final_messages
 end
 
-ollama.parse_response = function(data_stream, _, opts)
+ollama.parse_stream_data = function(data_stream, opts)
   ---@type OllamaChatResponse
   local json = vim.json.decode(data_stream)
   if json.done then
-    vim.schedule(function() opts.on_complete(nil) end)
-  elseif json.message.content then
-    if json.message.content ~= vim.NIL then opts.on_chunk(json.message.content) end
+    opts.on_complete(nil)
+    return
+  elseif json.message and json.message.content then
+    opts.on_chunk(json.message.content)
+  elseif json.response then
+    opts.on_chunk(json.response)
   end
 end
 
-ollama.parse_response_without_stream = ollama.parse_response
+ollama.parse_response_without_stream = ollama.parse_stream_data
 
 ollama.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
@@ -273,16 +278,22 @@ ollama.parse_curl_args = function(provider, code_opts)
   Utils.debug("endpoint", base.endpoint)
   Utils.debug("model", base.model)
 
+  local body = vim.deepcopy(body_opts)
+  body.supports_messages = nil
+  body.model = provider.model or code_opts.model
+
+  if body_opts.supports_messages then
+    body.messages = ollama.parse_messages(code_opts)
+  else
+    body.prompt = vim.json.encode(ollama.parse_messages(code_opts))
+  end
+
   return {
     url = Utils.url_join(base.endpoint, "/api/generate"),
     proxy = base.proxy,
     insecure = base.allow_insecure,
-    headers = {},
-    body = vim.tbl_deep_extend("force", {
-      model = base.model,
-      messages = ollama.parse_messages(code_opts),
-      stream = true,
-    }, body_opts),
+    headers = { ["Content-Type"] = "application/json" },
+    body = body,
   }
 end
 
