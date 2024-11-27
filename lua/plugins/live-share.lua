@@ -1,22 +1,21 @@
 local function get_username()
-  try_get_username_cmd = {
+  local try_get_username_cmds = {
     "git config user.name",
     "git config user.email",
     "whoami",
     "echo $USER",
   }
-  for _, cmd in ipairs(try_get_username_cmd) do
+  for _, cmd in ipairs(try_get_username_cmds) do
     local handle = io.popen(cmd)
-    local result = handle:read("*a")
-    handle:close()
-    if result ~= "" then
-      return result
+    if handle then
+      local result = handle:read "*a"
+      handle:close()
+      if result ~= "" then return result end
     end
   end
 
   return "unknown"
 end
-
 
 return {
   "azratul/live-share.nvim",
@@ -24,11 +23,13 @@ return {
     "jbyuki/instant.nvim",
   },
   config = function()
-    vim.g.instant_username =  get_username()
-    require("live-share").setup({
+    vim.g.instant_username = get_username()
+    require("live-share").setup {
       port_internal = 8765,
       max_attempts = 40, -- 10 seconds
-      service = "localhost.run"
-    })
-  end
+      service = "localhost.run",
+      service_url = "/tmp/service.url", -- Path to the file where the URL from serveo.net will be stored
+      service_pid = "/tmp/service.pid", -- Path to the file where the PID of the SSH process will be stored
+    }
+  end,
 }
