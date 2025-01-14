@@ -108,7 +108,6 @@ local imports = {
   { import = "astrocommunity.markdown-and-latex.vimtex" },
   { import = "astrocommunity.motion.flash-nvim" },
   { import = "astrocommunity.motion.grapple-nvim" },
-  { import = "astrocommunity.note-taking.neorg" },
   { import = "astrocommunity.note-taking.venn-nvim" },
   { import = "astrocommunity.workflow.precognition-nvim" },
   { import = "astrocommunity.split-and-window.colorful-winsep-nvim" },
