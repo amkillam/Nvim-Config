@@ -1,19 +1,28 @@
 local utils = require "utils"
 local ollama_provider = require "plugins.avante.ollama"
 
-local OS = utils.OS()
+local os = utils.OS()
 local ollama_model = "qwen2.5-coder:7b"
 -- local ollama_model = os.getenv "AVANTE_OLLAMA_MODEL"
 -- if ollama_model == nil or ollama_model == "" then
-if OS == "Darwin" then
+if os == "Darwin" then
   ollama_model = "qwen2.5-coder:32b-instruct-q8_0"
   -- else
   -- ollama_model = "qwen2.5-coder:7b"
 end
 -- end
 
-local build = "make BUILD_FROM_SOURCE=true"
-if OS == "Windows" then build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource true" end
+local build
+if os == "Windows" then
+  build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource true"
+else
+  local gcc_version = vim.fn.system "gcc --version"
+  if string.find(gcc_version, "13.") then
+    build = "make BUILD_FROM_SOURCE=true"
+  else
+    build = "CC=gcc-13 make BUILD_FROM_SOURCE=true"
+  end
+end
 
 ---@class AvanteProvider
 local ollama_config = {
@@ -135,7 +144,7 @@ return { -- further customize the options set by the community
   opts = {
     debug = false,
     provider = "ollama", -- Only recommend using Claude
-    auto_suggestions_provider = "copilot",
+    auto_suggestions_provider = "claude",
     -- Used for counting tokens and encoding text.
     -- By default, we will use tiktoken.
     -- For most providers that we support we will determine this automatically.
