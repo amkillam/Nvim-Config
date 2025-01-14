@@ -31,7 +31,6 @@ local ollama_config = {
   timeout = 30000,
   temperature = 0,
   max_tokens = 32768,
-  supports_messages = false,
   api_key_name = "",
 }
 local ollama = vim.tbl_extend("force", ollama_provider, ollama_config)

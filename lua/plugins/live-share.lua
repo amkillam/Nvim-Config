@@ -30,6 +30,8 @@ return {
       port_internal = 8765,
       max_attempts = 40, -- 10 seconds
       service = "localhost.run",
+      service_url = "/tmp/service.url", -- Path to the file where the URL from serveo.net will be stored
+      service_pid = "/tmp/service.pid", -- Path to the file where the PID of the SSH process will be stored
     }
   end,
 }

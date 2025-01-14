@@ -9,7 +9,6 @@
 ---@field api_version? string
 ---@field proxy? string
 ---@field allow_insecure? boolean
----@field supports_messages? boolean
 ---@field api_key_name? string
 ---@field timeout? integer
 ---@field local? boolean
@@ -279,17 +278,12 @@ ollama.parse_curl_args = function(provider, code_opts)
   Utils.debug("model", base.model)
 
   local body = vim.deepcopy(body_opts)
-  body.supports_messages = nil
   body.model = provider.model or code_opts.model
 
-  if body_opts.supports_messages then
-    body.messages = ollama.parse_messages(code_opts)
-  else
-    body.prompt = vim.json.encode(ollama.parse_messages(code_opts))
-  end
+  body.messages = ollama.parse_messages(code_opts)
 
   return {
-    url = Utils.url_join(base.endpoint, "/api/generate"),
+    url = Utils.url_join(base.endpoint, "/api/chat"),
     proxy = base.proxy,
     insecure = base.allow_insecure,
     headers = { ["Content-Type"] = "application/json" },
