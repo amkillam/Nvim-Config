@@ -5,16 +5,12 @@ local os = utils.OS()
 local ollama_model = "deepseek-r1-coder-tools:8b"
 if os == "Darwin" then ollama_model = "deepseek-r1-coder-tools:70b" end
 
-local build
+local build = "make BUILD_FROM_SOURCE=true"
 if os == "Windows" then
   build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource true"
-else
+elseif os ~= "Darwin" then
   local gcc_version = vim.fn.system "gcc --version"
-  if string.find(gcc_version, "13.") then
-    build = "make BUILD_FROM_SOURCE=true"
-  else
-    build = "CC=gcc-13 make BUILD_FROM_SOURCE=true"
-  end
+  if not string.find(gcc_version, "13.") then build = "CC=gcc-13 make BUILD_FROM_SOURCE=true" end
 end
 
 ---@class AvanteProvider
@@ -36,20 +32,20 @@ local function ollama_with_model(model)
   return ollama_provider_with_model
 end
 
----@class AvanteProvider
-local ollama_qwen2_5_coder_7b = ollama_with_model "qwen2.5-coder:7b"
----@class AvanteProvider
-local ollama_qwen2_5_coder_32b_instruct_fp16 = ollama_with_model "qwen2.5-coder:32b-instruct-fp16"
----@class AvanteProvider
-local ollama_qwen2_5_coder_32b_instruct_q8_0 = ollama_with_model "qwen2.5-coder:32b-instruct-q8_0"
---- @class AvanteProvider
-local ollama_deepseek_r1_coder_tools_7b = ollama_with_model "deepseek-r1-coder-tools:7b"
---- @class AvanteProvider
-local ollama_deepseek_r1_coder_tools_8b = ollama_with_model "deepseek-r1-coder-tools:8b"
---- @class AvanteProvider
-local ollama_deepseek_r1_coder_tools_70b = ollama_with_model "deepseek-r1-coder-tools:70b"
---- @class AvanteProvider
-local ollama_deepseek_r1_70b_llama_distill_q8_0 = ollama_with_model "deepseek-r1:70b-llama-distill-q8_0"
+local function installed_ollama_vendors()
+  local ollama_models_list_raw = utils.remove_first_line(vim.fn.system "ollama list")
+  local ollama_models_list = utils.split_lines(ollama_models_list_raw, " ")[1]
+  local installed_model_vendors = {
+    ["ollama"] = ollama,
+  }
+  for _, installed_model in pairs(ollama_models_list) do
+    local prefixed_installed_model = "ollama/" .. installed_model
+    local vendor = ollama_with_model(installed_model)
+    vendor.model = installed_model
+    installed_model_vendors[prefixed_installed_model] = vendor
+  end
+  return installed_model_vendors
+end
 
 return { -- further customize the options set by the community
   "yetone/avante.nvim",
@@ -143,7 +139,10 @@ return { -- further customize the options set by the community
   },
   opts = {
     debug = false,
-    provider = "ollama", -- Only recommend using Claude
+    provider = "ollama",
+    -- WARNING: Since auto-suggestions are a high-frequency operation and therefore expensive,
+    -- currently designating it as `copilot` provider is dangerous because: https://github.com/yetone/avante.nvim/issues/1048
+    -- Of course, you can reduce the request frequency by increasing `suggestion.debounce`.
     auto_suggestions_provider = "claude",
     -- Used for counting tokens and encoding text.
     -- By default, we will use tiktoken.
@@ -162,7 +161,7 @@ Respect and use existing conventions, libraries, etc that are already present in
     openai = {
       endpoint = "https://api.openai.com/v1",
       model = "o3-mini",
-      timeout = 30000, -- Timeout in milliseconds
+      timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 200000,
     },
@@ -187,7 +186,7 @@ Respect and use existing conventions, libraries, etc that are already present in
     ---@type AvanteSupportedProvider
     claude = {
       endpoint = "https://api.anthropic.com",
-      model = "claude-3-5-sonnet-20240620",
+      model = "claude-3-5-sonnet-20241022",
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 8000,
@@ -209,27 +208,26 @@ Respect and use existing conventions, libraries, etc that are already present in
       max_tokens = 4096,
     },
 
+    ---Specify the special dual_boost mode
+    ---1. enabled: Whether to enable dual_boost mode. Default to false.
+    ---2. first_provider: The first provider to generate response. Default to "openai".
+    ---3. second_provider: The second provider to generate response. Default to "claude".
+    ---4. prompt: The prompt to generate response based on the two reference outputs.
+    ---5. timeout: Timeout in milliseconds. Default to 60000.
+    ---How it works:
+    --- When dual_boost is enabled, avante will generate two responses from the first_provider and second_provider respectively. Then use the response from the first_provider as provider1_output and the response from the second_provider as provider2_output. Finally, avante will generate a response based on the prompt and the two reference outputs, with the default Provider as normal.
+    ---Note: This is an experimental feature and may not work as expected.
+    dual_boost = {
+      enabled = false,
+      first_provider = "openai",
+      second_provider = "claude",
+      prompt = "Based on the two reference outputs below, generate a response that incorporates elements from both but reflects your own judgment and unique perspective. Do not provide any explanation, just give the response directly. Reference Output 1: [{{provider1_output}}], Reference Output 2: [{{provider2_output}}]",
+      timeout = 60000, -- Timeout in milliseconds
+    },
     ---To add support for custom provider, follow the format below
     ---See https://github.com/yetone/avante.nvim/README.md#custom-providers for more details
     ---@type {[string]: AvanteProvider}
-    vendors = {
-      ---@type AvanteProvider
-      ["ollama"] = ollama,
-      ---@type AvanteProvider
-      ["ollama_qwen2.5-coder:7b"] = ollama_qwen2_5_coder_7b,
-      ---@type AvanteProvider
-      ["ollama_qwen2.5-coder:32b-instruct-q8_0"] = ollama_qwen2_5_coder_32b_instruct_q8_0,
-      ---@type AvanteProvider
-      ["ollama_qwen2.5-coder:32b-instruct-fp16"] = ollama_qwen2_5_coder_32b_instruct_fp16,
-      ---@type AvanteProvider
-      ["ollama_deepseek-r1-coder-tools:7b"] = ollama_deepseek_r1_coder_tools_7b,
-      ---@type AvanteProvider
-      ["ollama_deepseek-r1-coder-tools:8b"] = ollama_deepseek_r1_coder_tools_8b,
-      ---@type AvanteProvider
-      ["ollama_deepseek-r1-coder-tools:70b"] = ollama_deepseek_r1_coder_tools_70b,
-      ---@type AvanteProvider
-      ["ollama_deepseek-r1:70b-llama-distill-q8_0"] = ollama_deepseek_r1_70b_llama_distill_q8_0,
-    },
+    vendors = installed_ollama_vendors(),
     ---Specify the behaviour of avante.nvim
     ---1. auto_apply_diff_after_generation: Whether to automatically apply diff after LLM response.
     ---                                     This would simulate similar behaviour to cursor. Default to false.
@@ -243,19 +241,14 @@ Respect and use existing conventions, libraries, etc that are already present in
       auto_set_keymaps = false,
       auto_apply_diff_after_generation = true,
       support_paste_from_clipboard = true,
+      minimize_diff = true, -- Whether to remove unchanged lines when applying a code block
+      enable_token_counting = true, -- Whether to enable token counting. Default to true.
     },
     history = {
       storage_path = vim.fn.stdpath "state" .. "/avante",
       paste = {
         extension = "png",
         filename = "pasted-%Y-%m-%d-%H-%M-%S",
-      },
-    },
-    highlights = {
-      ---@type AvanteConflictHighlights
-      diff = {
-        current = "DiffText",
-        incoming = "DiffAdd",
       },
     },
     mappings = {
@@ -301,28 +294,51 @@ Respect and use existing conventions, libraries, etc that are already present in
       },
     },
     windows = {
-      position = "right",
+      ---@type "right" | "left" | "top" | "bottom"
+      position = "right", -- the position of the sidebar
       wrap = true, -- similar to vim.o.wrap
-      width = 30, -- default % based on available width in vertical layout
-      height = 30, -- default % based on available height in horizontal layout
+      width = 30, -- default % based on available width
       sidebar_header = {
+        enabled = true, -- true, false to enable/disable the header
         align = "center", -- left, center, right for title
         rounded = true,
       },
       input = {
         prefix = "> ",
+        height = 8, -- Height of the input window in vertical layout
       },
       edit = {
         border = "rounded",
+        start_insert = true, -- Start insert mode when opening the edit window
+      },
+      ask = {
+        floating = false, -- Open the 'AvanteAsk' prompt in a floating window
+        start_insert = true, -- Start insert mode when opening the ask window
+        border = "rounded",
+        ---@type "ours" | "theirs"
+        focus_on_apply = "ours", -- which diff to focus after applying
+      },
+    }, --- @class AvanteConflictConfig
+    highlights = {
+      ---@type AvanteConflictHighlights
+      diff = {
+        current = "DiffText",
+        incoming = "DiffAdd",
       },
     },
-    --- @class AvanteConflictConfig
+    --- @class AvanteConflictUserConfig
     diff = {
       autojump = true,
+      ---@type string | fun(): any
+      list_opener = "copen",
+      --- Override the 'timeoutlen' setting while hovering over a diff (see :help timeoutlen).
+      --- Helps to avoid entering operator-pending mode with diff mappings starting with `c`.
+      --- Disable by setting to -1.
+      override_timeoutlen = 500,
     },
-    --- @class AvanteHintsConfig
-    hints = {
-      enabled = false,
+    suggestion = {
+      debounce = 600,
+      throttle = 600,
     },
   },
   specs = {

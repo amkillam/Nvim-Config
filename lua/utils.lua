@@ -20,4 +20,36 @@ function utils.OS()
   end
 end
 
+-- split("a,b,c", ",") => {"a", "b", "c"}
+function utils.split(s, sep)
+  local fields = {}
+
+  local valid_sep = sep or " "
+  local pattern = string.format("([^%s]+)", valid_sep)
+  local _ = string.gsub(s, pattern, function(c) fields[#fields + 1] = c end)
+
+  return fields
+end
+
+function utils.map(tbl, f)
+  local t = {}
+  for k, v in pairs(tbl) do
+    t[k] = f(v)
+  end
+  return t
+end
+
+function utils.split_lines(s, sep)
+  local line_fields = {}
+  for line_num, line in ipairs(utils.split(s, "\n")) do
+    for i, field in ipairs(utils.split(line, sep)) do
+      if not line_fields[i] then line_fields[i] = {} end
+      line_fields[i][line_num] = field
+    end
+  end
+  return line_fields
+end
+
+function utils.remove_first_line(s) return s:gsub("^[^\n]*\n", "") end
+
 return utils
