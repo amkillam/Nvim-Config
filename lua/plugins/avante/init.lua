@@ -2,15 +2,8 @@ local utils = require "utils"
 local ollama_provider = require "plugins.avante.ollama"
 
 local os = utils.OS()
-local ollama_model = "qwen2.5-coder:7b"
--- local ollama_model = os.getenv "AVANTE_OLLAMA_MODEL"
--- if ollama_model == nil or ollama_model == "" then
-if os == "Darwin" then
-  ollama_model = "qwen2.5-coder:32b-instruct-q8_0"
-  -- else
-  -- ollama_model = "qwen2.5-coder:7b"
-end
--- end
+local ollama_model = "deepseek-r1-coder-tools:8b"
+if os == "Darwin" then ollama_model = "deepseek-r1-coder-tools:70b" end
 
 local build
 if os == "Windows" then
@@ -49,6 +42,12 @@ local ollama_qwen2_5_coder_7b = ollama_with_model "qwen2.5-coder:7b"
 local ollama_qwen2_5_coder_32b_instruct_fp16 = ollama_with_model "qwen2.5-coder:32b-instruct-fp16"
 ---@class AvanteProvider
 local ollama_qwen2_5_coder_32b_instruct_q8_0 = ollama_with_model "qwen2.5-coder:32b-instruct-q8_0"
+--- @class AvanteProvider
+local ollama_deepseek_r1_coder_tools_7b = ollama_with_model "deepseek-r1-coder-tools:7b"
+--- @class AvanteProvider
+local ollama_deepseek_r1_coder_tools_8b = ollama_with_model "deepseek-r1-coder-tools:8b"
+--- @class AvanteProvider
+local ollama_deepseek_r1_coder_tools_70b = ollama_with_model "deepseek-r1-coder-tools:70b"
 
 return { -- further customize the options set by the community
   "yetone/avante.nvim",
@@ -160,10 +159,10 @@ Respect and use existing conventions, libraries, etc that are already present in
     ---@type AvanteSupportedProvider
     openai = {
       endpoint = "https://api.openai.com/v1",
-      model = "gpt-4o",
+      model = "o3-mini",
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
-      max_tokens = 4096,
+      max_tokens = 200000,
     },
     ---@type AvanteSupportedProvider
     copilot = {
@@ -220,6 +219,12 @@ Respect and use existing conventions, libraries, etc that are already present in
       ["ollama_qwen2.5-coder:32b-instruct-q8_0"] = ollama_qwen2_5_coder_32b_instruct_q8_0,
       ---@type AvanteProvider
       ["ollama_qwen2.5-coder:32b-instruct-fp16"] = ollama_qwen2_5_coder_32b_instruct_fp16,
+      ---@type AvanteProvider
+      ["ollama_deepseek-r1-coder-tools:7b"] = ollama_deepseek_r1_coder_tools_7b,
+      ---@type AvanteProvider
+      ["ollama_deepseek-r1-coder-tools:8b"] = ollama_deepseek_r1_coder_tools_8b,
+      ---@type AvanteProvider
+      ["ollama_deepseek-r1-coder-tools:70b"] = ollama_deepseek_r1_coder_tools_70b,
     },
     ---Specify the behaviour of avante.nvim
     ---1. auto_apply_diff_after_generation: Whether to automatically apply diff after LLM response.
