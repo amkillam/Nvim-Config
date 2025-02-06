@@ -48,6 +48,8 @@ local ollama_deepseek_r1_coder_tools_7b = ollama_with_model "deepseek-r1-coder-t
 local ollama_deepseek_r1_coder_tools_8b = ollama_with_model "deepseek-r1-coder-tools:8b"
 --- @class AvanteProvider
 local ollama_deepseek_r1_coder_tools_70b = ollama_with_model "deepseek-r1-coder-tools:70b"
+--- @class AvanteProvider
+local ollama_deepseek_r1_70b_llama_distill_q8_0 = ollama_with_model "deepseek-r1:70b-llama-distill-q8_0"
 
 return { -- further customize the options set by the community
   "yetone/avante.nvim",
@@ -225,6 +227,8 @@ Respect and use existing conventions, libraries, etc that are already present in
       ["ollama_deepseek-r1-coder-tools:8b"] = ollama_deepseek_r1_coder_tools_8b,
       ---@type AvanteProvider
       ["ollama_deepseek-r1-coder-tools:70b"] = ollama_deepseek_r1_coder_tools_70b,
+      ---@type AvanteProvider
+      ["ollama_deepseek-r1:70b-llama-distill-q8_0"] = ollama_deepseek_r1_70b_llama_distill_q8_0,
     },
     ---Specify the behaviour of avante.nvim
     ---1. auto_apply_diff_after_generation: Whether to automatically apply diff after LLM response.
