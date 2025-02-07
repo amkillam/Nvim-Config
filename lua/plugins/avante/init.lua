@@ -2,8 +2,8 @@ local utils = require "utils"
 local ollama_provider = require "plugins.avante.ollama"
 
 local os = utils.OS()
-local ollama_model = "deepseek-r1-coder-tools:8b"
-if os == "Darwin" then ollama_model = "deepseek-r1-coder-tools:70b" end
+local ollama_model = "ishumilin/deepseek-r1-coder-tools:8b"
+if os == "Darwin" then ollama_model = "ishumilin/deepseek-r1-coder-tools:70b" end
 
 local build = "make BUILD_FROM_SOURCE=true"
 if os == "Windows" then
@@ -17,7 +17,7 @@ end
 local ollama_config = {
   model = ollama_model,
   endpoint = "http://127.0.0.1:11434",
-  timeout = 30000,
+  timeout = 60 * 60 * 1000, -- 1 hour timeout in milliseconds
   temperature = 0,
   max_tokens = 32768,
   api_key_name = "",
@@ -32,6 +32,21 @@ local function ollama_with_model(model)
   return ollama_provider_with_model
 end
 
+---@param model string
+local function model_params(model)
+  local model_info = vim.fn.system("ollama show " .. model)
+  local context_length = string.match(model_info, "context length%s+(%d+)")
+  if not context_length then context_length = string.match(model_info, "num_ctx%s+(%d+)") end
+  if not context_length then context_length = 32768 end
+
+  local temperature = string.match(model_info, "temperature%s+(%d+.%d*)%s")
+  if not temperature then temperature = 0 end
+  return {
+    ["context_length"] = context_length,
+    ["temperature"] = temperature,
+  }
+end
+
 local function installed_ollama_vendors()
   local ollama_models_list_raw = utils.remove_first_line(vim.fn.system "ollama list")
   local ollama_models_list = utils.split_lines(ollama_models_list_raw, " ")[1]
@@ -42,6 +57,10 @@ local function installed_ollama_vendors()
     local prefixed_installed_model = "ollama/" .. installed_model
     local vendor = ollama_with_model(installed_model)
     vendor.model = installed_model
+
+    local installed_model_params = model_params(installed_model)
+    vendor.context_length = installed_model_params.context_length
+    vendor.temperature = installed_model_params.temperature
     installed_model_vendors[prefixed_installed_model] = vendor
   end
   return installed_model_vendors
@@ -99,6 +118,16 @@ return { -- further customize the options set by the community
         maps.v[prefix .. "a"] = {
           function() require("avante.api").ask() end,
           desc = "Avante ask",
+        }
+
+        maps.n[prefix .. "c"] = {
+          function() require("avante.api").ask() end,
+          desc = "Avante chat",
+        }
+
+        maps.v[prefix .. "c"] = {
+          function() require("avante.api").ask() end,
+          desc = "Avante chat",
         }
 
         maps.v[prefix .. "r"] = {
@@ -254,19 +283,19 @@ Respect and use existing conventions, libraries, etc that are already present in
     mappings = {
       ---@class AvanteConflictMappings
       diff = {
-        ours = "<leader>aco",
-        theirs = "<leader>act",
-        all_theirs = "<leader>aca",
-        both = "<leader>acb",
-        cursor = "<leader>acc",
-        next = "<leader>a]x",
-        prev = "<leader>a[x",
+        ours = "<leader>ado",
+        theirs = "<leader>adt",
+        all_theirs = "<leader>ada",
+        both = "<leader>adb",
+        cursor = "<leader>adc",
+        next = "<leader>ad]",
+        prev = "<leader>ad[",
       },
       suggestion = {
-        accept = "<leader>a<M-l>",
-        next = "<leader>a<M-]>",
-        prev = "<leader>a<M-[>",
-        dismiss = "<leader>a<C-]>",
+        accept = "<leader>asa",
+        next = "<leader>as]",
+        prev = "<leader>as[",
+        dismiss = "<leader>asd",
       },
       jump = {
         next = "<leader>a]]",
@@ -279,6 +308,7 @@ Respect and use existing conventions, libraries, etc that are already present in
       -- NOTE: The following will be safely set by avante.nvim
       ask = "<leader>aa",
       edit = "<leader>ae",
+      chat = "<leader>ac",
       refresh = "<leader>ar",
       toggle = {
         default = "<leader>at",
@@ -287,8 +317,8 @@ Respect and use existing conventions, libraries, etc that are already present in
         suggestion = "<leader>as",
       },
       sidebar = {
-        apply_all = "<leader>adA",
-        apply_cursor = "<leader>ada",
+        apply_all = "<C-ap>",
+        apply_cursor = "<C-a>",
         switch_windows = "<Tab>",
         reverse_switch_windows = "<S-Tab>",
       },
