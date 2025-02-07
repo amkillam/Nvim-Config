@@ -67,7 +67,7 @@ local function installed_ollama_vendors()
 end
 
 return { -- further customize the options set by the community
-  "yetone/avante.nvim",
+  "amkillam/avante.nvim",
   event = "VeryLazy",
   lazy = false,
   build = build,
@@ -142,6 +142,16 @@ return { -- further customize the options set by the community
         maps.v[prefix .. "e"] = {
           function() require("avante.api").edit() end,
           desc = "Avante edit",
+        }
+
+        maps.n[prefix .. "m"] = {
+          function() require("avante.api").select_model() end,
+          desc = "Avante select model",
+        }
+
+        maps.v[prefix .. "m"] = {
+          function() require("avante.api").select_model() end,
+          desc = "Avante select model",
         }
 
         -- the following key bindings do not have an official api implementation
@@ -322,6 +332,7 @@ Respect and use existing conventions, libraries, etc that are already present in
         switch_windows = "<Tab>",
         reverse_switch_windows = "<S-Tab>",
       },
+      select_model = "<leader>am",
     },
     windows = {
       ---@type "right" | "left" | "top" | "bottom"
