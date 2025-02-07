@@ -257,15 +257,17 @@ ollama.parse_messages = function(opts)
 end
 
 ollama.parse_stream_data = function(data_stream, opts)
-  ---@type OllamaChatResponse
-  local json = vim.json.decode(data_stream)
-  if json.done then
-    opts.on_complete(nil)
-    return
-  elseif json.message and json.message.content then
-    opts.on_chunk(json.message.content)
-  elseif json.response then
-    opts.on_chunk(json.response)
+  if data_stream == nil or data_stream == "" then return end
+  ---@type boolean, OllamaChatResponse
+  local ok, json = pcall(vim.json.decode, data_stream)
+  if ok then
+    if json.done then
+      return
+    elseif json.message and json.message.content then
+      opts.on_chunk(json.message.content)
+    elseif json.response then
+      opts.on_chunk(json.response)
+    end
   end
 end
 
