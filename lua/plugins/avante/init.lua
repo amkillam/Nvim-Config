@@ -53,15 +53,17 @@ local function installed_ollama_vendors()
   local installed_model_vendors = {
     ["ollama"] = ollama,
   }
-  for _, installed_model in pairs(ollama_models_list) do
-    local prefixed_installed_model = "ollama/" .. installed_model
-    local vendor = ollama_with_model(installed_model)
-    vendor.model = installed_model
+  if ollama_models_list ~= nil then
+    for _, installed_model in pairs(ollama_models_list) do
+      local prefixed_installed_model = "ollama/" .. installed_model
+      local vendor = ollama_with_model(installed_model)
+      vendor.model = installed_model
 
-    local installed_model_params = model_params(installed_model)
-    vendor.context_length = installed_model_params.context_length
-    vendor.temperature = installed_model_params.temperature
-    installed_model_vendors[prefixed_installed_model] = vendor
+      local installed_model_params = model_params(installed_model)
+      vendor.context_length = installed_model_params.context_length
+      vendor.temperature = installed_model_params.temperature
+      installed_model_vendors[prefixed_installed_model] = vendor
+    end
   end
   return installed_model_vendors
 end
@@ -178,7 +180,7 @@ return { -- further customize the options set by the community
   },
   opts = {
     debug = false,
-    provider = "ollama",
+    provider = "claude",
     -- WARNING: Since auto-suggestions are a high-frequency operation and therefore expensive,
     -- currently designating it as `copilot` provider is dangerous because: https://github.com/yetone/avante.nvim/issues/1048
     -- Of course, you can reduce the request frequency by increasing `suggestion.debounce`.
@@ -199,15 +201,15 @@ Respect and use existing conventions, libraries, etc that are already present in
     ---@type AvanteSupportedProvider
     openai = {
       endpoint = "https://api.openai.com/v1",
-      model = "o3-mini",
+      model = "o1",
       timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
-      max_tokens = 200000,
+      max_tokens = 100000,
     },
     ---@type AvanteSupportedProvider
     copilot = {
       endpoint = "https://api.githubcopilot.com",
-      model = "gpt-4o",
+      model = "o3-mini",
       proxy = nil, -- [protocol://]host[:port] Use this proxy
       allow_insecure = false, -- Allow insecure server connections
       timeout = 30000, -- Timeout in milliseconds
@@ -225,10 +227,10 @@ Respect and use existing conventions, libraries, etc that are already present in
     ---@type AvanteSupportedProvider
     claude = {
       endpoint = "https://api.anthropic.com",
-      model = "claude-3-5-sonnet-20241022",
+      model = "claude-3-7-sonnet-latest",
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
-      max_tokens = 8000,
+      max_tokens = 64000,
     },
     ---@type AvanteSupportedProvider
     gemini = {
