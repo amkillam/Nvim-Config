@@ -50,6 +50,15 @@ function utils.split_lines(s, sep)
   return line_fields
 end
 
+function utils.slice(tbl, start, stop)
+  local t = {}
+  for i = start, stop do
+    if not tbl[i] then break end
+    table.insert(t, tbl[i])
+  end
+  return t
+end
+
 function utils.remove_first_line(s) return s:gsub("^[^\n]*\n", "") end
 
 return utils

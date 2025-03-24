@@ -1,5 +1,6 @@
 local utils = require "utils"
 local ollama_provider = require "plugins.avante.ollama"
+local curl = require "plenary.curl"
 
 local os = utils.OS()
 local ollama_model = "ishumilin/deepseek-r1-coder-tools:8b"
@@ -12,6 +13,53 @@ elseif os ~= "Darwin" then
   local gcc_version = vim.fn.system "gcc --version"
   if not string.find(gcc_version, "13.") then build = "CC=gcc-13 make BUILD_FROM_SOURCE=true" end
 end
+
+--- @type AvanteLLMToolPublic
+local search_web = {
+  description = "Search the web using searxng",
+  name = "search_web",
+  param = {
+    fields = {
+      {
+        description = "The query to search for",
+        name = "query",
+        type = "string",
+      },
+    },
+    type = "table",
+  },
+  returns = {
+    {
+      description = "The search results",
+      name = "results",
+      type = "string[]", -- @type AvanteLLMToolReturn[]
+    },
+  }, -- @type AvanteLLMToolReturn[]
+
+  --- @type AvanteLLMTool
+  ---@diagnostic disable-next-line: assign-type-mismatch
+  func = function(opts)
+    local uri = "http://127.0.0.1:8080"
+    local response = curl.get(uri .. "/search?q=" .. vim.uri_encode(opts.query) .. "&format=json")
+    if not response or response.status ~= 200 then return end
+    local responseBodyStr = response.body
+    if not responseBodyStr then return end
+    local responseBody = vim.json.decode(responseBodyStr)
+    return {
+      results = utils.map(
+        utils.slice(responseBody.results, 1, 6),
+        function(result)
+          return vim.json.encode {
+            title = result.title,
+            url = result.url,
+            score = result.score,
+            snippet = result.content,
+          }
+        end
+      ),
+    }
+  end,
+}
 
 ---@class AvanteProvider
 local ollama_config = {
@@ -382,6 +430,13 @@ Respect and use existing conventions, libraries, etc that are already present in
     suggestion = {
       debounce = 600,
       throttle = 600,
+    },
+    disabled_tools = {
+      "web_search",
+    }, ---@type string[]
+    ---@type AvanteLLMToolPublic[] | fun(): AvanteLLMToolPublic[]
+    custom_tools = {
+      search_web,
     },
   },
   specs = {
