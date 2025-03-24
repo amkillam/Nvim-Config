@@ -128,9 +128,22 @@ return { -- further customize the options set by the community
     "AvanteEdit",
     "AvanteRefresh",
     "AvanteSwitchProvider",
-    "AvanteChat",
     "AvanteToggle",
+    "AvanteToggleDebug",
+    "AvanteToggleHint",
+    "AvanteToggleSuggestion",
     "AvanteClear",
+    "AvanteFocus",
+    "AvanteSelectModel",
+    "AvanteConflictOurs",
+    "AvanteConflictTheirs",
+    "AvanteConflictAllTheirs",
+    "AvanteConflictBoth",
+    "AvanteConflictCursor",
+    "AvanteConflictPrevConflict",
+    "AvanteConflictNextConflict",
+    "AvanteShowRepoMap",
+    "AvanteSwitchProvider",
   },
   dependencies = {
     "stevearc/dressing.nvim",
@@ -204,6 +217,56 @@ return { -- further customize the options set by the community
           desc = "Avante select model",
         }
 
+        maps.n[prefix .. "t"] = {
+          function() require("avante.api").toggle() end,
+          desc = "Avante toggle",
+        }
+
+        maps.v[prefix .. "t"] = {
+          function() require("avante.api").toggle() end,
+          desc = "Avante toggle",
+        }
+
+        maps.n[prefix .. "d"] = {
+          function() require("avante.api").toggle.debug() end,
+          desc = "Avante toggle debug",
+        }
+
+        maps.v[prefix .. "d"] = {
+          function() require("avante.api").toggle.debug() end,
+          desc = "Avante toggle debug",
+        }
+
+        maps.n[prefix .. "s"] = {
+          function() require("avante.api").toggle.hint() end,
+          desc = "Avante toggle suggestion",
+        }
+
+        maps.v[prefix .. "s"] = {
+          function() require("avante.api").toggle.hint() end,
+          desc = "Avante toggle suggestion",
+        }
+
+        maps.n[prefix .. "S"] = {
+          function() require("avante.api").stop() end,
+          desc = "Avante stop",
+        }
+
+        maps.v[prefix .. "S"] = {
+          function() require("avante.api").stop() end,
+          desc = "Avante stop",
+        }
+
+        maps.n[prefix .. "R"] = {
+          function() require("avante.repo_map").show() end,
+          desc = "Avante show repo map",
+        }
+
+        maps.v[prefix .. "R"] = {
+          function() require("avante.repo_map").show() end,
+          desc = "Avante show repo map",
+        }
+
         -- the following key bindings do not have an official api implementation
         maps.n.co = { "<Plug>(AvanteConflictOurs)", desc = "Choose ours", expr = true }
         maps.v.co = { "<Plug>(AvanteConflictOurs)", desc = "Choose ours", expr = true }
@@ -233,6 +296,8 @@ return { -- further customize the options set by the community
     -- currently designating it as `copilot` provider is dangerous because: https://github.com/yetone/avante.nvim/issues/1048
     -- Of course, you can reduce the request frequency by increasing `suggestion.debounce`.
     auto_suggestions_provider = "claude",
+    cursor_applying_provider = "claude",
+    memory_summary_provider = "claude",
     -- Used for counting tokens and encoding text.
     -- By default, we will use tiktoken.
     -- For most providers that we support we will determine this automatically.
@@ -245,11 +310,189 @@ return { -- further customize the options set by the community
 Act as an expert software developer.
 Always use best practices when coding.
 Respect and use existing conventions, libraries, etc that are already present in the code base.
+
+Where possible, iteratively create unit tests for code generated. Modularise where possible.
+
+Ensur that the code is clean, readable, and maintainable.
+
+Do not stop until you have completed your task. Pursue all possible avenues to achieve the desired outcome.
+
+Consult all available resources, including specification, documentation, code, and other developers, to ensure that the code is correct and efficient. \
+When unavailable, acquire information using all tools available to you. Primarily, use bash commands (`curl`, `wget`, etc), the `search_web` tool, and code review.
+
+Ensure that the code is well-documented and that all changes are clearly explained in the commit message. 
+
+Document and generate unit tests for code written as you go. Run unit tests to ensure that the code is correct. Upon failure, debug and fix the code.
+
+Above all else, you may not introduce any new bugs or regressions, nor may you introduce any new security vulnerabilities. You must ensure that the code is correct and secure.
+
+Remember, you may NOT stop until you have completed your task. 
+
+You can do this. Take a deep breath, gather your thoughts, and begin. The world is counting on you.
 ]],
+    rag_service = {
+      enabled = false, -- Enables the rag service, requires OPENAI_API_KEY to be set
+      -- host_mount = os.getenv "HOME" .. "/.avante/rag", -- The host mount for the rag service
+      runner = "docker", -- The runner for the rag service, (can use docker, or nix)
+      provider = "openai", -- The provider to use for RAG service. eg: openai or ollama
+      llm_model = "", -- The LLM model to use for RAG service
+      embed_model = "", -- The embedding model to use for RAG service
+      endpoint = "https://api.openai.com/v1", -- The API endpoint for RAG service
+      docker_extra_args = "", -- Extra arguments to pass to the docker command
+    },
+    confirm_prompt = {
+      enabled = false,
+    },
+    search_web_engine = {
+      provider = "tavily",
+      providers = {
+        tavily = {
+          api_key_name = "TAVILY_API_KEY",
+          extra_request_body = {
+            include_answer = "basic",
+          },
+          ---@type WebSearchEngineProviderResponseBodyFormatter
+          format_response_body = function(body) return body.answer, nil end,
+        },
+        serpapi = {
+          api_key_name = "SERPAPI_API_KEY",
+          extra_request_body = {
+            engine = "google",
+            google_domain = "google.com",
+          },
+          ---@type WebSearchEngineProviderResponseBodyFormatter
+          format_response_body = function(body)
+            if body.answer_box ~= nil then return body.answer_box.result, nil end
+            if body.organic_results ~= nil then
+              local jsn = vim
+                .iter(body.organic_results)
+                :map(
+                  function(result)
+                    return {
+                      title = result.title,
+                      link = result.link,
+                      snippet = result.snippet,
+                      date = result.date,
+                    }
+                  end
+                )
+                :take(10)
+                :totable()
+              return vim.json.encode(jsn), nil
+            end
+            return "", nil
+          end,
+        },
+        searchapi = {
+          api_key_name = "SEARCHAPI_API_KEY",
+          extra_request_body = {
+            engine = "google",
+          },
+          ---@type WebSearchEngineProviderResponseBodyFormatter
+          format_response_body = function(body)
+            if body.answer_box ~= nil then return body.answer_box.result, nil end
+            if body.organic_results ~= nil then
+              local jsn = vim
+                .iter(body.organic_results)
+                :map(
+                  function(result)
+                    return {
+                      title = result.title,
+                      link = result.link,
+                      snippet = result.snippet,
+                      date = result.date,
+                    }
+                  end
+                )
+                :take(10)
+                :totable()
+              return vim.json.encode(jsn), nil
+            end
+            return "", nil
+          end,
+        },
+        google = {
+          api_key_name = "GOOGLE_SEARCH_API_KEY",
+          engine_id_name = "GOOGLE_SEARCH_ENGINE_ID",
+          extra_request_body = {},
+          ---@type WebSearchEngineProviderResponseBodyFormatter
+          format_response_body = function(body)
+            if body.items ~= nil then
+              local jsn = vim
+                .iter(body.items)
+                :map(
+                  function(result)
+                    return {
+                      title = result.title,
+                      link = result.link,
+                      snippet = result.snippet,
+                    }
+                  end
+                )
+                :take(10)
+                :totable()
+              return vim.json.encode(jsn), nil
+            end
+            return "", nil
+          end,
+        },
+        kagi = {
+          api_key_name = "KAGI_API_KEY",
+          extra_request_body = {
+            limit = "10",
+          },
+          ---@type WebSearchEngineProviderResponseBodyFormatter
+          format_response_body = function(body)
+            if body.data ~= nil then
+              local jsn = vim
+                .iter(body.data)
+                -- search results only
+                :filter(function(result) return result.t == 0 end)
+                :map(
+                  function(result)
+                    return {
+                      title = result.title,
+                      url = result.url,
+                      snippet = result.snippet,
+                    }
+                  end
+                )
+                :take(10)
+                :totable()
+              return vim.json.encode(jsn), nil
+            end
+            return "", nil
+          end,
+        },
+        brave = {
+          api_key_name = "BRAVE_API_KEY",
+          extra_request_body = {
+            count = "10",
+            result_filter = "web",
+          },
+          format_response_body = function(body)
+            if body.web == nil then return "", nil end
+
+            local jsn = vim.iter(body.web.results):map(
+              function(result)
+                return {
+                  title = result.title,
+                  url = result.url,
+                  snippet = result.description,
+                }
+              end
+            )
+
+            return vim.json.encode(jsn), nil
+          end,
+        },
+      },
+    },
+
     ---@type AvanteSupportedProvider
     openai = {
       endpoint = "https://api.openai.com/v1",
-      model = "o1",
+      model = "o3-mini",
       timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 100000,
@@ -270,7 +513,7 @@ Respect and use existing conventions, libraries, etc that are already present in
       api_version = "2024-06-01",
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
-      max_tokens = 4096,
+      max_completion_tokens = 4096,
     },
     ---@type AvanteSupportedProvider
     claude = {
@@ -308,8 +551,8 @@ Respect and use existing conventions, libraries, etc that are already present in
     ---Note: This is an experimental feature and may not work as expected.
     dual_boost = {
       enabled = false,
-      first_provider = "openai",
-      second_provider = "claude",
+      first_provider = "claude",
+      second_provider = "openai",
       prompt = "Based on the two reference outputs below, generate a response that incorporates elements from both but reflects your own judgment and unique perspective. Do not provide any explanation, just give the response directly. Reference Output 1: [{{provider1_output}}], Reference Output 2: [{{provider2_output}}]",
       timeout = 60000, -- Timeout in milliseconds
     },
@@ -325,13 +568,19 @@ Respect and use existing conventions, libraries, etc that are already present in
     ---3. auto_set_highlight_group        : Whether to automatically set the highlight group for the current line. Default to true.
     ---4. support_paste_from_clipboard    : Whether to support pasting image from clipboard. This will be determined automatically based whether img-clip is available or not.
     behaviour = {
+      auto_focus_sidebar = true,
       auto_suggestions = false, -- Experimental stage
+      auto_suggestions_respect_ignore = false,
       auto_set_highlight_group = true,
-      auto_set_keymaps = false,
+      auto_set_keymaps = true,
       auto_apply_diff_after_generation = true,
+      jump_result_buffer_on_finish = false,
       support_paste_from_clipboard = true,
-      minimize_diff = true, -- Whether to remove unchanged lines when applying a code block
-      enable_token_counting = true, -- Whether to enable token counting. Default to true.
+      minimize_diff = true,
+      enable_token_counting = true,
+      enable_cursor_planning_mode = true,
+      enable_claude_text_editor_tool_mode = true,
+      use_cwd_as_project_root = true,
     },
     history = {
       storage_path = vim.fn.stdpath "state" .. "/avante",
@@ -352,14 +601,14 @@ Respect and use existing conventions, libraries, etc that are already present in
         prev = "<leader>ad[",
       },
       suggestion = {
-        accept = "<leader>asa",
-        next = "<leader>as]",
-        prev = "<leader>as[",
-        dismiss = "<leader>asd",
+        accept = "<C-asa>",
+        next = "<C-as]>",
+        prev = "<C-as[>",
+        dismiss = "<C-asd>",
       },
       jump = {
-        next = "<leader>a]]",
-        prev = "<leader>a[[",
+        next = "<C-a]]>",
+        prev = "<C-a[[>",
       },
       submit = {
         normal = "<CR>",
@@ -368,27 +617,43 @@ Respect and use existing conventions, libraries, etc that are already present in
       -- NOTE: The following will be safely set by avante.nvim
       ask = "<leader>aa",
       edit = "<leader>ae",
-      chat = "<leader>ac",
       refresh = "<leader>ar",
+      focus = "<leader>af",
+      stop = "<leader>aS",
       toggle = {
         default = "<leader>at",
         debug = "<leader>ad",
         hint = "<leader>ah",
         suggestion = "<leader>as",
+        repomap = "<leader>aR",
       },
       sidebar = {
         apply_all = "<C-ap>",
         apply_cursor = "<C-a>",
+        retry_user_request = "<C-r>",
+        edit_user_request = "<C-e>",
         switch_windows = "<Tab>",
         reverse_switch_windows = "<S-Tab>",
+        remove_file = "d",
+        add_file = "@",
+        close = { "<C-Esc>", "<C-q>" },
+        ---@diagnostic disable-next-line: duplicate-doc-alias
+        ---@alias AvanteCloseFromInput { normal: string | nil, insert: string | nil }
+        ---@type AvanteCloseFromInput | nil
+        close_from_input = nil, -- e.g., { normal = "<Esc>", insert = "<C-d>" }
+      },
+      files = {
+        add_current = "<leader>ac", -- Add current buffer to selected files
       },
       select_model = "<leader>am",
+      select_history = "<leader>ah", -- Select history command
     },
+
     windows = {
-      ---@type "right" | "left" | "top" | "bottom"
-      position = "right", -- the position of the sidebar
+      position = "right",
       wrap = true, -- similar to vim.o.wrap
-      width = 30, -- default % based on available width
+      width = 30, -- default % based on available width in vertical layout
+      height = 30, -- default % based on available height in horizontal layout
       sidebar_header = {
         enabled = true, -- true, false to enable/disable the header
         align = "center", -- left, center, right for title
@@ -404,28 +669,36 @@ Respect and use existing conventions, libraries, etc that are already present in
       },
       ask = {
         floating = false, -- Open the 'AvanteAsk' prompt in a floating window
-        start_insert = true, -- Start insert mode when opening the ask window
         border = "rounded",
-        ---@type "ours" | "theirs"
+        start_insert = true, -- Start insert mode when opening the ask window
         focus_on_apply = "ours", -- which diff to focus after applying
       },
-    }, --- @class AvanteConflictConfig
-    highlights = {
-      ---@type AvanteConflictHighlights
-      diff = {
-        current = "DiffText",
-        incoming = "DiffAdd",
-      },
     },
-    --- @class AvanteConflictUserConfig
+
+    --- @class AvanteConflictConfig
     diff = {
       autojump = true,
-      ---@type string | fun(): any
-      list_opener = "copen",
       --- Override the 'timeoutlen' setting while hovering over a diff (see :help timeoutlen).
       --- Helps to avoid entering operator-pending mode with diff mappings starting with `c`.
       --- Disable by setting to -1.
       override_timeoutlen = 500,
+    },
+    --- @class AvanteHintsConfig
+    hints = {
+      enabled = false,
+    },
+    --- @class AvanteRepoMapConfig
+    repo_map = {
+      ignore_patterns = { "__pycache__", "node_modules" }, -- ignore files matching these
+      negate_patterns = {}, -- negate ignore files matching these.
+    },
+    --- @class AvanteFileSelectorConfig
+    file_selector = {
+      ---@diagnostic disable-next-line: duplicate-doc-alias
+      --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string | fun(params: avante.file_selector.IParams|nil): nil
+      provider = "native",
+      -- Options override for custom providers
+      provider_opts = {},
     },
     suggestion = {
       debounce = 600,
