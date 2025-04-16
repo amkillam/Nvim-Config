@@ -1,10 +1,4 @@
 return {
-  { "williamboman/mason.nvim" },
-  { "nvim-neotest/nvim-nio" },
-  {
-    "szw/vim-maximizer",
-    cmd = "MaximizerToggle",
-  },
   {
     "mfussenegger/nvim-dap",
     dependencies = {
@@ -14,6 +8,11 @@ return {
         "LiadOz/nvim-dap-repl-highlights",
         config = true,
         dependencies = {
+          {
+              "szw/vim-maximizer",
+              cmd = "MaximizerToggle",
+          },
+          "nvim-neotest/nvim-nio",
           "mfussenegger/nvim-dap",
           "jay-babu/mason-nvim-dap.nvim",
           "suketa/nvim-dap-ruby",

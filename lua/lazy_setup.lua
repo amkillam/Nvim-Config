@@ -4,6 +4,9 @@ local concurrency = utils.num_cpus()
 if utils.OS() == "Darwin" then concurrency = math.ceil(concurrency / 2) end
 
 require("lazy").setup({
+  { "williamboman/mason.nvim" },
+  { "kevinhwang91/promise-async" },
+  { "kevinhwang91/nvim-ufo" },
   {
     "AstroNvim/AstroNvim",
     import = "astronvim.plugins",
@@ -15,7 +18,6 @@ require("lazy").setup({
       update_notifications = true, -- Enable/disable notification about running `:Lazy update` twice to update pinned plugins
     },
   },
-
   { import = "community" },
   { import = "plugins" },
 } --[[@as LazySpec]], {
@@ -23,7 +25,7 @@ require("lazy").setup({
   install = { 
     colorscheme = {
         "folke/tokyonight.nvim",
-        lazy = true,
+        lazy = false,
         opts = { style = "storm" },
     }
   },
