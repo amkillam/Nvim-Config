@@ -59,6 +59,11 @@ function utils.slice(tbl, start, stop)
   return t
 end
 
+function utils.num_cpus()
+  local num_cpus = utils.cmd("nproc", true)
+  return tonumber(num_cpus)
+end
+
 function utils.remove_first_line(s) return s:gsub("^[^\n]*\n", "") end
 
 return utils

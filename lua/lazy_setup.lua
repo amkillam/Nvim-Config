@@ -1,3 +1,8 @@
+local utils = require "utils"
+
+local concurrency = utils.num_cpus()
+if utils.OS() == "Darwin" then concurrency = math.ceil(concurrency / 2) end
+
 require("lazy").setup({
   {
     "AstroNvim/AstroNvim",
@@ -27,4 +32,5 @@ require("lazy").setup({
       },
     },
   },
+  concurrency = concurrency,
 } --[[@as LazyConfig]])
