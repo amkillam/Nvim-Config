@@ -492,10 +492,10 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     ---@type AvanteSupportedProvider
     openai = {
       endpoint = "https://api.openai.com/v1",
-      model = "o3-mini",
+      model = "o1",
       timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
-      max_tokens = 100000,
+      max_completion_tokens = 200000,
     },
     ---@type AvanteSupportedProvider
     copilot = {
