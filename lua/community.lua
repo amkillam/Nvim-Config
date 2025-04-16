@@ -28,6 +28,7 @@ local imports = {
   { import = "astrocommunity.colorscheme.sonokai" },
   { import = "astrocommunity.colorscheme.tokyonight-nvim" },
   { import = "astrocommunity.colorscheme.vscode-nvim" },
+  { import = "astrocommunity.completion.blink-cmp" },
   { import = "astrocommunity.pack.angular" },
   { import = "astrocommunity.pack.ansible" },
   { import = "astrocommunity.pack.astro" },
