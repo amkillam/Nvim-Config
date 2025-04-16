@@ -1,4 +1,5 @@
 return {
+  { "williamboman/mason.nvim" },
   { "nvim-neotest/nvim-nio" },
   {
     "szw/vim-maximizer",
@@ -14,7 +15,10 @@ return {
         config = true,
         dependencies = {
           "mfussenegger/nvim-dap",
+          "jay-babu/mason-nvim-dap.nvim",
+          "suketa/nvim-dap-ruby",
           "nvim-treesitter/nvim-treesitter",
+          "nvim-treesitter/nvim-treesitter-textobjects"
         }
       },
     },
