@@ -97,7 +97,6 @@ local imports = {
   { import = "astrocommunity.editing-support.neogen" },
   { import = "astrocommunity.editing-support.dial-nvim" },
   { import = "astrocommunity.editing-support.nvim-origami" },
-  { import = "astrocommunity.editing-support.vim-doge" },
   { import = "astrocommunity.editing-support.vim-move" },
   { import = "astrocommunity.git.diffview-nvim" },
   { import = "astrocommunity.git.blame-nvim" },
