@@ -1,4 +1,5 @@
 return {
+  { "nvim-neotest/nvim-nio" },
   {
     "szw/vim-maximizer",
     cmd = "MaximizerToggle",
