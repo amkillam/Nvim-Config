@@ -693,9 +693,9 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
       negate_patterns = {}, -- negate ignore files matching these.
     },
     --- @class AvanteFileSelectorConfig
-    file_selector = {
+    selector = {
       ---@diagnostic disable-next-line: duplicate-doc-alias
-      --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string | fun(params: avante.file_selector.IParams|nil): nil
+      --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string | fun(params: avante.selector.IParams|nil): nil
       provider = "native",
       -- Options override for custom providers
       provider_opts = {},
