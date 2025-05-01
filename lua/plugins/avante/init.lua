@@ -1,6 +1,5 @@
 local utils = require "utils"
 local ollama_provider = require "plugins.avante.ollama"
-local curl = require "plenary.curl"
 
 local os = utils.OS()
 local ollama_model = "ishumilin/deepseek-r1-coder-tools:8b"
@@ -13,54 +12,6 @@ elseif os ~= "Darwin" then
   local gcc_version = vim.fn.system "gcc --version"
   if not string.find(gcc_version, "13.") then build = "CC=gcc-13 make BUILD_FROM_SOURCE=true" end
 end
-
---- @type AvanteLLMToolPublic
-local search_web = {
-  description = "Search the web using searxng",
-  name = "search_web",
-  param = {
-    fields = {
-      {
-        description = "The query to search for",
-        name = "query",
-        type = "string",
-      },
-    },
-    type = "table",
-  },
-  returns = {
-    {
-      description = "The search results",
-      name = "results",
-      type = "string[]", -- @type AvanteLLMToolReturn[]
-    },
-  }, -- @type AvanteLLMToolReturn[]
-
-  --- @type AvanteLLMTool
-  ---@diagnostic disable-next-line: assign-type-mismatch
-  func = function(opts)
-    local uri = "http://127.0.0.1:8080"
-    local response = curl.get(uri .. "/search?q=" .. vim.uri_encode(opts.query) .. "&format=json")
-    if not response or response.status ~= 200 then return end
-    local responseBodyStr = response.body
-    if not responseBodyStr then return end
-    local responseBody = vim.json.decode(responseBodyStr)
-    return {
-      results = utils.map(
-        utils.slice(responseBody.results, 1, 6),
-        function(result)
-          return vim.json.encode {
-            title = result.title,
-            url = result.url,
-            score = result.score,
-            snippet = result.content,
-          }
-        end
-      ),
-    }
-  end,
-}
-
 ---@class AvanteProvider
 local ollama_config = {
   model = ollama_model,
@@ -115,6 +66,51 @@ local function installed_ollama_vendors()
   end
   return installed_model_vendors
 end
+
+---To add support for custom provider, follow the format below
+---See https://github.com/yetone/avante.nvim/wiki#custom-providers for more details
+---@type {[string]: AvanteProvider}
+local vendors = {
+  ---@type AvanteSupportedProvider
+  ["claude-haiku"] = {
+    __inherited_from = "claude",
+    model = "claude-3-5-haiku-20241022",
+    timeout = 30000, -- Timeout in milliseconds
+    temperature = 0,
+    max_tokens = 8192,
+  },
+  ---@type AvanteSupportedProvider
+  ["claude-opus"] = {
+    __inherited_from = "claude",
+    model = "claude-3-opus-20240229",
+    timeout = 30000, -- Timeout in milliseconds
+    temperature = 0,
+    max_tokens = 20480,
+  },
+  ["openai-gpt-4o-mini"] = {
+    __inherited_from = "openai",
+    model = "gpt-4o-mini",
+  },
+  aihubmix = {
+    __inherited_from = "openai",
+    endpoint = "https://aihubmix.com/v1",
+    model = "gpt-4o-2024-11-20",
+    api_key_name = "AIHUBMIX_API_KEY",
+  },
+  ["aihubmix-claude"] = {
+    __inherited_from = "claude",
+    endpoint = "https://aihubmix.com",
+    model = "claude-3-7-sonnet-20250219",
+    api_key_name = "AIHUBMIX_API_KEY",
+  },
+  ["bedrock-claude-3.7-sonnet"] = {
+    __inherited_from = "bedrock",
+    model = "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    max_tokens = 4096,
+  },
+}
+-- //Extend vendors with installed_ollama_vendors()
+vendors = vim.tbl_extend("force", vendors, installed_ollama_vendors())
 
 return { -- further customize the options set by the community
   "amkillam/avante.nvim",
@@ -318,7 +314,8 @@ Ensur that the code is clean, readable, and maintainable.
 Do not stop until you have completed your task. Pursue all possible avenues to achieve the desired outcome.
 
 Consult all available resources, including specification, documentation, code, and other developers, to ensure that the code is correct and efficient. \
-When unavailable, acquire information using all tools available to you. Primarily, use bash commands (`curl`, `wget`, etc), the `search_web` tool, and code review.
+When unavailable, acquire information using all tools available to you. If possible, acquire information through extensive code review, and as a last resort, you may \
+use bash commands (`curl`, `wget`, etc) or search the web.
 
 Ensure that the code is well-documented and that all changes are clearly explained in the commit message. 
 
@@ -343,8 +340,9 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     confirm_prompt = {
       enabled = false,
     },
-    search_web_engine = {
-      provider = "tavily",
+    web_search_engine = {
+      provider = "searxng",
+      proxy = nil,
       providers = {
         tavily = {
           api_key_name = "TAVILY_API_KEY",
@@ -362,7 +360,7 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
           },
           ---@type WebSearchEngineProviderResponseBodyFormatter
           format_response_body = function(body)
-            if body.answer_box ~= nil then return body.answer_box.result, nil end
+            if body.answer_box ~= nil and body.answer_box.result ~= nil then return body.answer_box.result, nil end
             if body.organic_results ~= nil then
               local jsn = vim
                 .iter(body.organic_results)
@@ -486,21 +484,43 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
             return vim.json.encode(jsn), nil
           end,
         },
+        searxng = {
+          api_url_name = "SEARXNG_API_URL",
+          extra_request_body = {
+            format = "json",
+          },
+          ---@type WebSearchEngineProviderResponseBodyFormatter
+          format_response_body = function(body)
+            if body.results == nil then return "", nil end
+
+            local jsn = vim.iter(body.results):map(
+              function(result)
+                return {
+                  title = result.title,
+                  url = result.url,
+                  snippet = result.content,
+                }
+              end
+            )
+
+            return vim.json.encode(jsn), nil
+          end,
+        },
       },
     },
-
     ---@type AvanteSupportedProvider
     openai = {
       endpoint = "https://api.openai.com/v1",
-      model = "o1",
+      model = "o3",
       timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
-      max_completion_tokens = 200000,
+      max_completion_tokens = 100000,
+      reasoning_effort = "high",
     },
     ---@type AvanteSupportedProvider
     copilot = {
       endpoint = "https://api.githubcopilot.com",
-      model = "o3-mini",
+      model = "o4-mini",
       proxy = nil, -- [protocol://]host[:port] Use this proxy
       allow_insecure = false, -- Allow insecure server connections
       timeout = 30000, -- Timeout in milliseconds
@@ -559,7 +579,7 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     ---To add support for custom provider, follow the format below
     ---See https://github.com/yetone/avante.nvim/README.md#custom-providers for more details
     ---@type {[string]: AvanteProvider}
-    vendors = installed_ollama_vendors(),
+    vendors = vendors,
     ---Specify the behaviour of avante.nvim
     ---1. auto_apply_diff_after_generation: Whether to automatically apply diff after LLM response.
     ---                                     This would simulate similar behaviour to cursor. Default to false.
@@ -583,12 +603,25 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
       use_cwd_as_project_root = true,
     },
     history = {
+      max_tokens = 4096,
+      carried_entry_count = nil,
       storage_path = vim.fn.stdpath "state" .. "/avante",
       paste = {
         extension = "png",
         filename = "pasted-%Y-%m-%d-%H-%M-%S",
       },
     },
+    highlights = {
+      diff = {
+        current = nil,
+        incoming = nil,
+      },
+    },
+    img_paste = {
+      url_encode_path = true,
+      template = "\nimage: $FILE_PATH\n",
+    },
+
     mappings = {
       ---@class AvanteConflictMappings
       diff = {
@@ -704,13 +737,10 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
       debounce = 600,
       throttle = 600,
     },
-    disabled_tools = {
-      "web_search",
-    }, ---@type string[]
+    disabled_tools = {}, ---@type string[]
+
     ---@type AvanteLLMToolPublic[] | fun(): AvanteLLMToolPublic[]
-    custom_tools = {
-      search_web,
-    },
+    custom_tools = {},
   },
   specs = {
     {
