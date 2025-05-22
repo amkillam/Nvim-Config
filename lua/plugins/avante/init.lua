@@ -82,7 +82,7 @@ local vendors = {
   ---@type AvanteSupportedProvider
   ["claude-opus"] = {
     __inherited_from = "claude",
-    model = "claude-3-opus-20240229",
+    model = "claude-opus-4-latest",
     timeout = 30000, -- Timeout in milliseconds
     temperature = 0,
     max_tokens = 20480,
@@ -100,12 +100,12 @@ local vendors = {
   ["aihubmix-claude"] = {
     __inherited_from = "claude",
     endpoint = "https://aihubmix.com",
-    model = "claude-3-7-sonnet-20250219",
+    model = "claude-opus-4-latest",
     api_key_name = "AIHUBMIX_API_KEY",
   },
-  ["bedrock-claude-3.7-sonnet"] = {
+  ["bedrock-claude-4-sonnet"] = {
     __inherited_from = "bedrock",
-    model = "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    model = "us.anthropic.claude-4-sonnet-latest-v1:0",
     max_tokens = 4096,
   },
 }
@@ -520,7 +520,7 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     ---@type AvanteSupportedProvider
     copilot = {
       endpoint = "https://api.githubcopilot.com",
-      model = "claude-3.7-sonnet-thought",
+      model = "claude-4-opus-thought",
       proxy = nil, -- [protocol://]host[:port] Use this proxy
       allow_insecure = false, -- Allow insecure server connections
       timeout = 30000, -- Timeout in milliseconds
@@ -538,7 +538,7 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     ---@type AvanteSupportedProvider
     claude = {
       endpoint = "https://api.anthropic.com",
-      model = "claude-3-7-sonnet-latest",
+      model = "claude-4-opus-latest",
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 64000,
