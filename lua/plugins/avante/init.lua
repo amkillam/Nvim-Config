@@ -85,7 +85,14 @@ local vendors = {
     model = "claude-opus-4-latest",
     timeout = 30000, -- Timeout in milliseconds
     temperature = 0,
-    max_tokens = 20480,
+    max_tokens = 64000,
+  },
+  ["claude-sonnet"] = {
+    __inherited_from = "claude",
+    model = "claude-sonnet-4-latest",
+    timeout = 30000, -- Timeout in milliseconds
+    temperature = 0,
+    max_tokens = 64000,
   },
   ["openai-gpt-4o-mini"] = {
     __inherited_from = "openai",
@@ -520,7 +527,7 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     ---@type AvanteSupportedProvider
     copilot = {
       endpoint = "https://api.githubcopilot.com",
-      model = "claude-4-opus-thought",
+      model = "claude-4-sonnet-thought",
       proxy = nil, -- [protocol://]host[:port] Use this proxy
       allow_insecure = false, -- Allow insecure server connections
       timeout = 30000, -- Timeout in milliseconds
@@ -538,7 +545,7 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     ---@type AvanteSupportedProvider
     claude = {
       endpoint = "https://api.anthropic.com",
-      model = "claude-4-opus-latest",
+      model = "claude-4-sonnet-latest",
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 64000,
