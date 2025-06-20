@@ -1137,7 +1137,7 @@ return { -- further customize the options set by the community
     -- Of course, you can reduce the request frequency by increasing `suggestion.debounce`.
     auto_suggestions_provider = "copilot",
     cursor_applying_provider = "vertex-gemini-2.5-flash-preview-05-20",
-    memory_summary_provider = "vertex-gemini-2.5-flash-preview-06-17",
+    memory_summary_provider = "vertex-gemini-2.5-flash-preview-05-20",
     -- Used for counting tokens and encoding text.
     -- By default, we will use tiktoken.
     -- For most providers that we support we will determine this automatically.
