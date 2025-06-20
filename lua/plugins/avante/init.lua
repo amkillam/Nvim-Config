@@ -1,14 +1,37 @@
 local utils = require "utils"
 local ollama_provider = require "plugins.avante.ollama"
 
-local os = utils.OS()
+local OS = utils.OS()
 local ollama_model = "ishumilin/deepseek-r1-coder-tools:8b"
-if os == "Darwin" then ollama_model = "ishumilin/deepseek-r1-coder-tools:70b" end
+if OS == "Darwin" then ollama_model = "ishumilin/deepseek-r1-coder-tools:70b" end
+
+-- Vertex AI endpoint configuration
+local function get_vertex_endpoint()
+  local project_id = os.getenv "VERTEXAI_PROJECT" or "PROJECT_ID"
+  local location = os.getenv "VERTEXAI_LOCATION" or "LOCATION"
+
+  if location == "global" then
+    return string.format(
+      "https://aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models",
+      project_id,
+      location
+    )
+  else
+    return string.format(
+      "https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models",
+      location,
+      project_id,
+      location
+    )
+  end
+end
+
+local vertex_endpoint = get_vertex_endpoint()
 
 local build = "make BUILD_FROM_SOURCE=true"
-if os == "Windows" then
+if OS == "Windows" then
   build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource true"
-elseif os ~= "Darwin" then
+elseif OS ~= "Darwin" then
   local gcc_version = vim.fn.system "gcc --version"
   if not string.find(gcc_version, "13.") then build = "CC=gcc-13 make BUILD_FROM_SOURCE=true" end
 end
@@ -17,9 +40,11 @@ local ollama_config = {
   model = ollama_model,
   endpoint = "http://127.0.0.1:11434",
   timeout = 60 * 60 * 1000, -- 1 hour timeout in milliseconds
-  temperature = 0,
-  max_tokens = 32768,
   api_key_name = "",
+  extra_request_body = {
+    temperature = 0,
+    max_tokens = 32768,
+  },
 }
 local ollama = vim.tbl_extend("force", ollama_provider, ollama_config)
 
@@ -60,7 +85,8 @@ local function installed_ollama_vendors()
 
       local installed_model_params = model_params(installed_model)
       vendor.context_length = installed_model_params.context_length
-      vendor.temperature = installed_model_params.temperature
+      if not vendor.extra_request_body then vendor.extra_request_body = {} end
+      vendor.extra_request_body.temperature = installed_model_params.temperature
       installed_model_vendors[prefixed_installed_model] = vendor
     end
   end
@@ -71,49 +97,852 @@ end
 ---See https://github.com/yetone/avante.nvim/wiki#custom-providers for more details
 ---@type {[string]: AvanteProvider}
 local vendors = {
-  ---@type AvanteSupportedProvider
   ["claude-haiku"] = {
     __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
     model = "claude-3-5-haiku-20241022",
     timeout = 30000, -- Timeout in milliseconds
-    temperature = 0,
-    max_tokens = 8192,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 8192,
+    },
   },
-  ---@type AvanteSupportedProvider
   ["claude-opus"] = {
     __inherited_from = "claude",
     model = "claude-opus-4-20250514",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
     timeout = 30000, -- Timeout in milliseconds
-    temperature = 0,
-    max_tokens = 64000,
+    extra_request_body = {
+      thinking = {
+        type = "enabled",
+        budget_tokens = 32000,
+      },
+      temperature = 0,
+      max_tokens = (64000 - 32000) * 0.85,
+    },
   },
   ["claude-sonnet"] = {
     __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
     model = "claude-sonnet-4-20250514",
     timeout = 30000, -- Timeout in milliseconds
-    temperature = 0,
-    max_tokens = 64000,
+    extra_request_body = {
+
+      thinking = {
+        type = "enabled",
+        budget_tokens = 16000,
+      },
+      temperature = 0,
+      max_tokens = (64000 - 16000) * 0.85,
+    },
+    extra_headers = {
+      ["anthropic-beta"] = "interleaved-thinking-2025-05-14,prompt-caching-2024-07-31,fine-grained-tool-streaming-2025-05-14",
+    },
+  },
+  ["claude-3-5-sonnet"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-5-sonnet-20241022",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 8192,
+    },
+  },
+  ["claude-3-opus"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-opus-20240229",
+    timeout = 60000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["claude-3-sonnet"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-sonnet-20240229",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["claude-3-haiku"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-haiku-20240307",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["claude-3-5-haiku-20241022"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-5-haiku-20241022",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 8192,
+    },
+  },
+  ["claude-3-5-sonnet-20241022"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-5-sonnet-20241022",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 8192,
+    },
+  },
+  ["claude-3-opus-20240229"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-opus-20240229",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["claude-3-sonnet-20240229"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-sonnet-20240229",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["claude-3-haiku-20240307"] = {
+    __inherited_from = "claude",
+    endpoint = "https://api.anthropic.com",
+    api_key_name = "ANTHROPIC_API_KEY",
+    model = "claude-3-haiku-20240307",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
   },
   ["openai-gpt-4o-mini"] = {
     __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
     model = "gpt-4o-mini",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 16384,
+    },
+  },
+  ["openai-gpt-4o"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "gpt-4o",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 16384,
+    },
+  },
+  ["openai-gpt-4o-2024-11-20"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "gpt-4o-2024-11-20",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 16384,
+    },
+  },
+  ["openai-gpt-4o-2024-08-06"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "gpt-4o-2024-08-06",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 16384,
+    },
+  },
+  ["openai-gpt-4o-2024-05-13"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "gpt-4o-2024-05-13",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 4096,
+    },
+  },
+  ["openai-o1"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "o1",
+    timeout = 300000,
+    extra_request_body = {
+      max_completion_tokens = 100000,
+      reasoning_effort = "high",
+    },
+  },
+  ["openai-o1-preview"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "o1-preview",
+    timeout = 300000,
+    extra_request_body = {
+      max_completion_tokens = 32768,
+      reasoning_effort = "high",
+    },
+  },
+  ["openai-o1-mini"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "o1-mini",
+    timeout = 180000,
+    extra_request_body = {
+      max_completion_tokens = 65536,
+      reasoning_effort = "medium",
+    },
+  },
+  ["openai-o3"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "o3",
+    timeout = 300000,
+    extra_request_body = {
+      max_completion_tokens = 100000,
+      reasoning_effort = "high",
+    },
+  },
+  ["openai-o3-mini"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "o3-mini",
+    timeout = 180000,
+    extra_request_body = {
+      max_completion_tokens = 65536,
+      reasoning_effort = "medium",
+    },
+  },
+  ["openai-gpt-4-turbo"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "gpt-4-turbo",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 4096,
+    },
+  },
+  ["openai-gpt-4-turbo-2024-04-09"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "gpt-4-turbo-2024-04-09",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 4096,
+    },
+  },
+  ["openai-gpt-4"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "gpt-4",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 4096,
+    },
+  },
+  ["openai-gpt-3.5-turbo"] = {
+    __inherited_from = "openai",
+    endpoint = "https://api.openai.com/v1",
+    api_key_name = "OPENAI_API_KEY",
+    model = "gpt-3.5-turbo",
+    timeout = 60000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 4096,
+    },
+  },
+  ["cohere-command-r-plus"] = {
+    __inherited_from = "cohere",
+    endpoint = "https://api.cohere.ai/v1",
+    api_key_name = "COHERE_API_KEY",
+    model = "command-r-plus",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["cohere-command-r-plus-08-2024"] = {
+    __inherited_from = "cohere",
+    endpoint = "https://api.cohere.ai/v1",
+    api_key_name = "COHERE_API_KEY",
+    model = "command-r-plus-08-2024",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["cohere-command-r"] = {
+    __inherited_from = "cohere",
+    endpoint = "https://api.cohere.ai/v1",
+    api_key_name = "COHERE_API_KEY",
+    model = "command-r",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["cohere-command-r-08-2024"] = {
+    __inherited_from = "cohere",
+    endpoint = "https://api.cohere.ai/v1",
+    api_key_name = "COHERE_API_KEY",
+    model = "command-r-08-2024",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["cohere-command"] = {
+    __inherited_from = "cohere",
+    endpoint = "https://api.cohere.ai/v1",
+    api_key_name = "COHERE_API_KEY",
+    model = "command",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["cohere-command-light"] = {
+
+    __inherited_from = "cohere",
+    endpoint = "https://api.cohere.ai/v1",
+    api_key_name = "COHERE_API_KEY",
+    model = "command-light",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
   },
   aihubmix = {
     __inherited_from = "openai",
     endpoint = "https://aihubmix.com/v1",
     model = "gpt-4o-2024-11-20",
     api_key_name = "AIHUBMIX_API_KEY",
+    timeout = 120000,
+    extra_request_body = {
+      temperature = 0,
+      max_completion_tokens = 16384,
+    },
   },
   ["aihubmix-claude"] = {
     __inherited_from = "claude",
     endpoint = "https://aihubmix.com",
     model = "claude-opus-4-latest",
     api_key_name = "AIHUBMIX_API_KEY",
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 64000 * 0.85,
+    },
   },
   ["bedrock-claude-sonnet-4"] = {
     __inherited_from = "bedrock",
+    endpoint = "https://bedrock-runtime.us-east-1.amazonaws.com",
+    api_key_name = "AWS_ACCESS_KEY_ID",
     model = "us.anthropic.claude-sonnet-4-20250514-v1:0",
-    max_tokens = 4096,
+    timeout = 30000,
+    extra_request_body = {
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  ["vertex-gemini-2.5-flash-preview-05-20"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+    model = "gemini-2.5-flash-preview-05-20",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+
+  ["vertex-gemini-2.5-pro-preview-06-05"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.5-pro-preview-06-05",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 32768 },
+      },
+    },
+  },
+  ["vertex-gemini-2.5-flash-lite-preview-06-17"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.5-flash-lite-preview-06-17",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+  ["vertex-gemini-2.5-flash"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.5-flash",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+  ["vertex-gemini-2.5-pro"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.5-pro",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 32768 },
+      },
+    },
+  },
+
+  ["vertex-gemini-1.5-pro"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-pro",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-1.5-pro-001"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-pro-001",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-1.5-pro-002"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-pro-002",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-1.5-latest"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-latest",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-1.5-flash-001"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-flash-001",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-1.5-flash-002"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-flash-002",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-1.5-flash-latest"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-flash-latest",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-1.5-flash-8b"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-flash-8b",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-1.5-flash-8b-latest"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-1.5-flash-8b-latest",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-exp-1206"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-exp-1206",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-2.0-flash-exp"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.0-flash-exp",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-2.0-flash-thinking-exp"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.0-flash-thinking-exp",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+  ["vertex-gemini-2.0-flash-thinking-exp-1219"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.0-flash-thinking-exp-1219",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+  ["vertex-gemini-2.0-flash-thinking-exp-1226"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.0-flash-thinking-exp-1226",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+  ["vertex-gemini-2.0-flash-thinking-exp-1231"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.0-flash-thinking-exp-1231",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+  ["vertex-gemini-2.0-flash-thinking-exp-0107"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.0-flash-thinking-exp-0107",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+  ["vertex-gemini-2.0-flash-thinking-exp-0114"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.0-flash-thinking-exp-0114",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+  ["vertex-gemini-2.0-flash-thinking-exp-0121"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.0-flash-thinking-exp-0121",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
+  },
+
+  -- New models added as requested
+  ["vertex-gemini-2.5-pro-exp-03-25"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.5-pro-exp-03-25",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 32768 },
+      },
+    },
+  },
+  ["vertex-gemini-2.5-pro-preview-03-25"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-2.5-pro-preview-03-25",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 32768 },
+      },
+    },
+  },
+  ["vertex-gemini-2.0-flash-exp-1206"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+    model = "gemini-2.0-flash-exp-1206",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      temperature = 0,
+    },
+  },
+  ["vertex-gemini-exp-1114"] = {
+    __inherited_from = "vertex",
+    endpoint = vertex_endpoint,
+
+    model = "gemini-exp-1114",
+    timeout = 300000, -- Timeout in milliseconds
+    api_key_name = "GOOGLE_APPLICATION_CREDENTIALS",
+    extra_request_body = {
+      safetySettings = {
+        ["0"] = { threshold = "OFF" },
+        ["1"] = { threshold = "OFF" },
+        ["2"] = { threshold = "OFF" },
+        ["3"] = { threshold = "OFF" },
+      },
+      generationConfig = {
+        maxOutputTokens = 64000,
+        temperature = 0,
+        thinkingConfig = { includeThoughts = true, thinkingBudget = 24576 },
+      },
+    },
   },
 }
 -- //Extend vendors with installed_ollama_vendors()
@@ -300,19 +1129,20 @@ return { -- further customize the options set by the community
     },
   },
   opts = {
+    mode = "agentic",
     debug = false,
-    provider = "claude",
+    provider = "vertex-gemini-2.5-flash-preview-05-20",
     -- WARNING: Since auto-suggestions are a high-frequency operation and therefore expensive,
     -- currently designating it as `copilot` provider is dangerous because: https://github.com/yetone/avante.nvim/issues/1048
     -- Of course, you can reduce the request frequency by increasing `suggestion.debounce`.
-    auto_suggestions_provider = "claude",
-    cursor_applying_provider = "claude",
-    memory_summary_provider = "claude",
+    auto_suggestions_provider = "copilot",
+    cursor_applying_provider = "vertex-gemini-2.5-flash-preview-05-20",
+    memory_summary_provider = "vertex-gemini-2.5-flash-preview-06-17",
     -- Used for counting tokens and encoding text.
     -- By default, we will use tiktoken.
     -- For most providers that we support we will determine this automatically.
     -- If you wish to use a given implementation, then you can override it here.
-    tokenizer = "tiktoken",
+    -- tokenizer = "tiktoken",
     -- Default system prompt. Users can override this with their own prompt
     -- You can use `require('avante.config').override({system_prompt = "MY_SYSTEM_PROMPT"}) conditionally
     -- in your own autocmds to do it per directory, or that fit your needs.
@@ -363,7 +1193,6 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
           extra_request_body = {
             include_answer = "basic",
           },
-          ---@type WebSearchEngineProviderResponseBodyFormatter
           format_response_body = function(body) return body.answer, nil end,
         },
         serpapi = {
@@ -372,7 +1201,6 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
             engine = "google",
             google_domain = "google.com",
           },
-          ---@type WebSearchEngineProviderResponseBodyFormatter
           format_response_body = function(body)
             if body.answer_box ~= nil and body.answer_box.result ~= nil then return body.answer_box.result, nil end
             if body.organic_results ~= nil then
@@ -400,7 +1228,6 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
           extra_request_body = {
             engine = "google",
           },
-          ---@type WebSearchEngineProviderResponseBodyFormatter
           format_response_body = function(body)
             if body.answer_box ~= nil then return body.answer_box.result, nil end
             if body.organic_results ~= nil then
@@ -427,7 +1254,6 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
           api_key_name = "GOOGLE_SEARCH_API_KEY",
           engine_id_name = "GOOGLE_SEARCH_ENGINE_ID",
           extra_request_body = {},
-          ---@type WebSearchEngineProviderResponseBodyFormatter
           format_response_body = function(body)
             if body.items ~= nil then
               local jsn = vim
@@ -453,7 +1279,6 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
           extra_request_body = {
             limit = "10",
           },
-          ---@type WebSearchEngineProviderResponseBodyFormatter
           format_response_body = function(body)
             if body.data ~= nil then
               local jsn = vim
@@ -491,6 +1316,7 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
                   title = result.title,
                   url = result.url,
                   snippet = result.description,
+                  init,
                 }
               end
             )
@@ -503,7 +1329,6 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
           extra_request_body = {
             format = "json",
           },
-          ---@type WebSearchEngineProviderResponseBodyFormatter
           format_response_body = function(body)
             if body.results == nil then return "", nil end
 
@@ -522,74 +1347,108 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
         },
       },
     },
-    ---@type AvanteSupportedProvider
-    openai = {
-      endpoint = "https://api.openai.com/v1",
-      model = "o3",
-      timeout = 120000, -- Timeout in milliseconds
-      temperature = 0,
-      max_completion_tokens = 64000,
-      reasoning_effort = "high",
-    },
-    ---@type AvanteSupportedProvider
-    copilot = {
-      endpoint = "https://api.githubcopilot.com",
-      model = "claude-3.7-sonnet-thought",
-      proxy = nil, -- [protocol://]host[:port] Use this proxy
-      allow_insecure = false, -- Allow insecure server connections
-      timeout = 120000, -- Timeout in milliseconds
-      temperature = 0,
-    },
-    ---@type AvanteAzureProvider
-    azure = {
-      endpoint = "", -- example: "https://<your-resource-name>.openai.azure.com"
-      deployment = "", -- Azure deployment name (e.g., "gpt-4o", "my-gpt-4o-deployment")
-      api_version = "2024-06-01",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_completion_tokens = 4096,
-    },
-    ---@type AvanteSupportedProvider
-    claude = {
-      endpoint = "https://api.anthropic.com",
-      model = "claude-sonnet-4-20250514",
-      timeout = 120000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 64000,
-      -- thinking_budget = 32000,
-      extra_headers = {
-        ["anthropic-beta"] = "interleaved-thinking-2025-05-14,prompt-caching-2024-07-31",
+    providers = vim.tbl_extend("force", vendors, {
+      openai = {
+        endpoint = "https://api.openai.com/v1",
+        model = "o3",
+        timeout = 120000, -- Timeout in milliseconds
+        extra_request_body = {
+          temperature = 0,
+          max_completion_tokens = 64000,
+          reasoning_effort = "high",
+        },
       },
-    },
-    vertex = {
-      model = "gemini-2.5-pro-preview-05-06",
-      timeout = 120000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 64000,
-    },
-    vertex_claude = {
-      model = "claude-sonnet-3.7",
-      timeout = 120000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 64000,
-      thinking_budget = 32000,
-    },
-    ---@type AvanteSupportedProvider
-    gemini = {
-      endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
-      model = "gemini-2.5-flash-preview-05-20",
-      timeout = 120000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 64000,
-    },
-    ---@type AvanteSupportedProvider
-    cohere = {
-      endpoint = "https://api.cohere.com/v1",
-      model = "command-r-plus-08-2024",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 4096,
-    },
+      copilot = {
+        endpoint = "https://api.githubcopilot.com",
+        model = "claude-sonnet-3.7-thought",
+        proxy = nil, -- [protocol://]host[:port] Use this proxy
+        allow_insecure = false, -- Allow insecure server connections
+        timeout = 30000, -- Timeout in milliseconds
+        extra_request_body = {
+          temperature = 0,
+          thinking_budget_tokens = 16000,
+          max_completion_tokens = (64000 - 16000) * 0.85,
+        },
+      },
+      azure = {
+        endpoint = "", -- example: "https://<your-resource-name>.openai.azure.com"
+        deployment = "", -- Azure deployment name (e.g., "gpt-4o", "my-gpt-4o-deployment")
+        api_version = "2024-06-01",
+        timeout = 30000, -- Timeout in milliseconds
+        extra_request_body = {
+          temperature = 0,
+          max_completion_tokens = 4096,
+        },
+      },
+
+      bedrock = {
+        endpoint = "https://bedrock.us-east-1.amazonaws.com", -- Bedrock endpoint
+        model = "anthropic.claude-2.1",
+        timeout = 30000, -- Timeout in milliseconds
+        api_key_name = "BEDROCK_API_KEY", -- Environment variable for Bedrock API key
+        extra_request_body = {
+          temperature = 0,
+          max_tokens = 4096,
+        },
+      },
+      claude = {
+        api_key_name = "ANTHROPIC_API_KEY",
+        endpoint = "https://api.anthropic.com",
+        model = "claude-sonnet-4-20250514",
+        timeout = 30000, -- Timeout in milliseconds
+        extra_request_body = {
+          temperature = 0,
+          thinking = {
+            type = "enabled",
+            budget_tokens = 16000, -- Budget for thinking in tokens
+          },
+          max_tokens = (64000 - 16000) * 0.85, -- Adjusted for thinking budget
+        },
+        extra_headers = {
+          ["anthropic-beta"] = "interleaved-thinking-2025-05-14,prompt-caching-2024-07-31,fine-grained-tool-streaming-2025-05-14",
+        },
+      },
+      gemini = {
+        endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
+        model = "gemini-2.5-flash",
+        timeout = 300000, -- Timeout in milliseconds
+        extra_request_body = {
+          temperature = 0,
+          extra_request_body = {
+            temperature = 0,
+            max_tokens = 64000, -- Adjusted for thinking budget
+            thinkingConfig = {
+              generationConfig = { includeThoughts = true, thinkingBudget = 24576 },
+            },
+          },
+        },
+      },
+      cohere = {
+        endpoint = "https://api.cohere.com/v1",
+        model = "command-r-plus-08-2024",
+        timeout = 30000, -- Timeout in milliseconds
+        extra_request_body = {
+          temperature = 0,
+          max_tokens = 4096,
+        },
+      },
+      vertex = {
+        endpoint = vertex_endpoint, -- Vertex AI endpoint
+        model = "gemini-2.5-flash-preview-05-20", -- Default model
+        timeout = 300000, -- Timeout in milliseconds
+        api_key_name = "GOOGLE_APPLICATION_CREDENTIALS", -- Environment variable for Google credentials
+        extra_request_body = {
+          temperature = 0,
+          extra_request_body = {
+            temperature = 0,
+            max_tokens = 64000, -- Adjusted for thinking budget
+            thinkingConfig = {
+              generationConfig = { includeThoughts = true, thinkingBudget = 24576 },
+            },
+          },
+        },
+      },
+    }),
 
     ---Specify the special dual_boost mode
     ---1. enabled: Whether to enable dual_boost mode. Default to false.
@@ -607,10 +1466,6 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
       prompt = "Based on the two reference outputs below, generate a response that incorporates elements from both but reflects your own judgment and unique perspective. Do not provide any explanation, just give the response directly. Reference Output 1: [{{provider1_output}}], Reference Output 2: [{{provider2_output}}]",
       timeout = 60000, -- Timeout in milliseconds
     },
-    ---To add support for custom provider, follow the format below
-    ---See https://github.com/yetone/avante.nvim/README.md#custom-providers for more details
-    ---@type {[string]: AvanteProvider}
-    vendors = vendors,
     ---Specify the behaviour of avante.nvim
     ---1. auto_apply_diff_after_generation: Whether to automatically apply diff after LLM response.
     ---                                     This would simulate similar behaviour to cursor. Default to false.
@@ -619,8 +1474,8 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     ---3. auto_set_highlight_group        : Whether to automatically set the highlight group for the current line. Default to true.
     ---4. support_paste_from_clipboard    : Whether to support pasting image from clipboard. This will be determined automatically based whether img-clip is available or not.
     behaviour = {
-      auto_focus_sidebar = true,
-      auto_suggestions = false, -- Experimental stage
+      auto_focus_sidebar = false,
+      auto_suggestions = true, -- Experimental stage
       auto_suggestions_respect_ignore = false,
       auto_set_highlight_group = true,
       auto_set_keymaps = true,
@@ -630,6 +1485,8 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
       minimize_diff = true,
       enable_token_counting = true,
       enable_cursor_planning_mode = true,
+      auto_approve_tool_permissions = true,
+      auto_check_diagnostics = true,
       enable_claude_text_editor_tool_mode = true,
       use_cwd_as_project_root = true,
     },
@@ -759,14 +1616,14 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     --- @class AvanteFileSelectorConfig
     selector = {
       ---@diagnostic disable-next-line: duplicate-doc-alias
-      --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string | fun(params: avante.selector.IParams|nil): nil
+      --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string : nil
       provider = "native",
       -- Options override for custom providers
       provider_opts = {},
     },
     suggestion = {
-      debounce = 600,
-      throttle = 600,
+      debounce = 1200,
+      throttle = 1200,
     },
     disabled_tools = {}, ---@type string[]
 
