@@ -82,7 +82,7 @@ local vendors = {
   ---@type AvanteSupportedProvider
   ["claude-opus"] = {
     __inherited_from = "claude",
-    model = "claude-opus-4-latest",
+    model = "claude-opus-4-20250514",
     timeout = 30000, -- Timeout in milliseconds
     temperature = 0,
     max_tokens = 64000,
@@ -137,7 +137,6 @@ return { -- further customize the options set by the community
     "AvanteToggleSuggestion",
     "AvanteClear",
     "AvanteFocus",
-    "AvanteSelectModel",
     "AvanteConflictOurs",
     "AvanteConflictTheirs",
     "AvanteConflictAllTheirs",
@@ -146,6 +145,14 @@ return { -- further customize the options set by the community
     "AvanteConflictPrevConflict",
     "AvanteConflictNextConflict",
     "AvanteShowRepoMap",
+    "AvanteStop",
+    "AvanteModels",
+    "AvanteSelectHistory",
+    "AvanteFilesAddCurrent",
+    "AvanteFilesAdd",
+    "AvanteFilesRemove",
+    "AvanteFilesToggle",
+    "AvanteSwitchSelectorProvider",
     "AvanteSwitchProvider",
   },
   dependencies = {
@@ -521,16 +528,16 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
       model = "o3",
       timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
-      max_completion_tokens = 100000,
+      max_completion_tokens = 64000,
       reasoning_effort = "high",
     },
     ---@type AvanteSupportedProvider
     copilot = {
       endpoint = "https://api.githubcopilot.com",
-      model = "claude-sonnet-4-thought",
+      model = "claude-3.7-sonnet-thought",
       proxy = nil, -- [protocol://]host[:port] Use this proxy
       allow_insecure = false, -- Allow insecure server connections
-      timeout = 30000, -- Timeout in milliseconds
+      timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
     },
     ---@type AvanteAzureProvider
@@ -546,17 +553,34 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
     claude = {
       endpoint = "https://api.anthropic.com",
       model = "claude-sonnet-4-20250514",
-      timeout = 30000, -- Timeout in milliseconds
+      timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 64000,
+      -- thinking_budget = 32000,
+      extra_headers = {
+        ["anthropic-beta"] = "interleaved-thinking-2025-05-14,prompt-caching-2024-07-31",
+      },
+    },
+    vertex = {
+      model = "gemini-2.5-pro-preview-05-06",
+      timeout = 120000, -- Timeout in milliseconds
+      temperature = 0,
+      max_tokens = 64000,
+    },
+    vertex_claude = {
+      model = "claude-sonnet-3.7",
+      timeout = 120000, -- Timeout in milliseconds
+      temperature = 0,
+      max_tokens = 64000,
+      thinking_budget = 32000,
     },
     ---@type AvanteSupportedProvider
     gemini = {
       endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
-      model = "gemini-1.5-flash-latest",
-      timeout = 30000, -- Timeout in milliseconds
+      model = "gemini-2.5-flash-preview-05-20",
+      timeout = 120000, -- Timeout in milliseconds
       temperature = 0,
-      max_tokens = 4096,
+      max_tokens = 64000,
     },
     ---@type AvanteSupportedProvider
     cohere = {
@@ -710,7 +734,7 @@ You can do this. Take a deep breath, gather your thoughts, and begin. The world 
       ask = {
         floating = false, -- Open the 'AvanteAsk' prompt in a floating window
         border = "rounded",
-        start_insert = true, -- Start insert mode when opening the ask window
+        start_insert = false, -- Start insert mode when opening the ask window
         focus_on_apply = "ours", -- which diff to focus after applying
       },
     },
