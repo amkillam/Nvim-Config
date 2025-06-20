@@ -64,6 +64,20 @@ function utils.num_cpus()
   return tonumber(num_cpus)
 end
 
+function utils.get_env(name)
+  local os = utils.OS()
+  if os == "Windows" then
+    return io.popen("echo %" .. name .. "%", "r"):read("*a"):gsub("\n", "")
+  elseif os == "Linux" or os == "Darwin" then
+    return io.popen("echo $" .. name, "r"):read("*a"):gsub("\n", "")
+  else
+    local f = io.popen("echo $" .. name, "r")
+    local s = f:read "*a"
+    f:close()
+    return s:gsub("\n", "")
+  end
+end
+
 function utils.remove_first_line(s) return s:gsub("^[^\n]*\n", "") end
 
 return utils
